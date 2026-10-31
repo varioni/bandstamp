@@ -1,46 +1,53 @@
 /* General Page Styling */
 body {
-  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Special Elite', system-ui, -apple-system, sans-serif;
   background-color: #f4f1ea;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 0);
+  background-size: 24px 24px;
   color: #2b2b2b;
   margin: 0;
-  padding: 20px;
+  padding: 30px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   min-height: 100vh;
 }
 
-/* Header & Logo Setup */
+/* Header & Logo Setup (Vertically Stacked) */
 header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 35px;
 }
 
 .logo-container {
   display: flex;
+  flex-direction: column; /* Stacks the logo above the text */
   align-items: center;
-  justify-content: center;
-  gap: 12px;
+  gap: 15px;
 }
 
 .site-logo {
-  width: 40px;
+  width: 110px; /* Big enough to make vintage details readable */
   height: auto;
+  filter: drop-shadow(0px 3px 6px rgba(139, 0, 0, 0.15));
 }
 
-h1 {
+.brand-title {
   margin: 0;
-  font-size: 2.2rem;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 4.2rem; /* Punchy high impact header */
   color: #8b0000;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  line-height: 0.9;
+  text-shadow: 1px 2px 0px rgba(0, 0, 0, 0.07);
 }
 
 .tagline {
-  font-style: italic;
-  color: #666;
-  margin-top: 6px;
+  font-family: 'Special Elite', cursive;
+  font-size: 1.05rem;
+  color: #4f4f4f;
+  margin-top: 10px;
 }
 
 /* Main Container & Search Bar */
@@ -52,36 +59,49 @@ main {
 .search-box {
   display: flex;
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 
 input[type="text"] {
   flex: 1;
-  padding: 12px 16px;
-  font-size: 1rem;
-  border: 2px solid #ccc;
+  font-family: inherit;
+  padding: 14px 20px;
+  font-size: 1.1rem;
+  background-color: #fff;
+  border: 2px solid #bda893;
   border-radius: 6px;
   outline: none;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.05);
 }
 
 input[type="text"]:focus {
   border-color: #8b0000;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.05), 0 0 0 3px rgba(139, 0, 0, 0.1);
 }
 
 button {
-  padding: 12px 20px;
-  font-size: 1rem;
-  font-weight: bold;
+  font-family: 'Bebas Neue', sans-serif;
+  padding: 0 24px;
+  font-size: 1.4rem;
+  letter-spacing: 1px;
   color: #ffffff;
   background-color: #8b0000;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.15s ease;
+  box-shadow: 0 3px 0 #5e0000, 0 4px 6px rgba(0,0,0,0.1);
 }
 
 button:hover {
-  background-color: #a00000;
+  background-color: #9d0a0a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 #5e0000, 0 6px 8px rgba(0,0,0,0.15);
+}
+
+button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #5e0000, 0 1px 2px rgba(0,0,0,0.15);
 }
 
 .hidden {
@@ -91,26 +111,34 @@ button:hover {
 /* Loading State */
 #loading {
   text-align: center;
-  font-weight: bold;
+  font-family: 'Special Elite', cursive;
+  font-size: 1.1rem;
   color: #8b0000;
-  margin: 20px 0;
+  margin: 30px 0;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
 }
 
 /* Band Result Card */
 .card {
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(43, 40, 35, 0.12);
   overflow: hidden;
-  margin-top: 20px;
-  border: 1px solid #e0e0e0;
+  margin-top: 25px;
+  border: 1px solid #d4c8b9;
 }
 
 .image-wrapper {
   position: relative;
   width: 100%;
-  height: 320px;
-  background-color: #e0e0e0;
+  height: 350px;
+  background-color: #e8e4db;
   overflow: hidden;
 }
 
@@ -122,84 +150,116 @@ button:hover {
 }
 
 .card-details {
-  padding: 24px;
+  padding: 30px;
+  position: relative;
 }
 
 .card-details h2 {
   margin-top: 0;
-  margin-bottom: 10px;
-  font-size: 1.8rem;
+  margin-bottom: 8px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.5rem;
+  letter-spacing: 1px;
+  color: #1a1a1a;
+  text-transform: uppercase;
+}
+
+/* Tier Badge Indicator */
+.badge {
+  display: inline-block;
+  font-family: 'Special Elite', cursive;
+  font-size: 0.9rem;
+  font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  background-color: #2b2b2b;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .score-display {
-  font-size: 1.2rem;
-  margin: 12px 0;
+  font-size: 1.3rem;
+  margin: 15px 0;
+  font-family: 'Special Elite', cursive;
+}
+
+.score-display .label {
+  color: #555;
 }
 
 #score-value {
   font-weight: bold;
   color: #8b0000;
+  font-size: 1.4rem;
 }
 
 #audit-summary {
-  line-height: 1.6;
-  color: #444;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.72;
+  color: #3a3a3a;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px dashed #d4c8b9;
 }
 
 /* Rubber Stamp Overlay Styles */
 .stamp {
   position: absolute;
-  top: 25px;
-  right: 25px;
-  padding: 10px 16px;
-  font-size: 1rem;
-  font-weight: 900;
+  top: 30px;
+  right: 30px;
+  padding: 12px 20px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem;
+  font-weight: bold;
   text-transform: uppercase;
   border-style: solid;
-  border-width: 4px;
+  border-width: 5px;
   border-radius: 8px;
   transform: rotate(-14deg);
-  opacity: 0.92;
+  opacity: 0.95;
   letter-spacing: 1.5px;
   text-align: center;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.7);
   pointer-events: none;
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 
-/* Stamp Tier Colors */
+/* Distressed/Rough Stamp Color Variants */
 .stamp.gold {
   color: #b8860b;
   border-color: #b8860b;
-  background: rgba(255, 248, 220, 0.9);
 }
 
 .stamp.green {
   color: #2e8b57;
   border-color: #2e8b57;
-  background: rgba(240, 255, 240, 0.9);
 }
 
 .stamp.yellow {
   color: #d99b00;
   border-color: #d99b00;
-  background: rgba(255, 255, 224, 0.9);
 }
 
 .stamp.orange {
   color: #d2691e;
   border-color: #d2691e;
-  background: rgba(255, 235, 205, 0.9);
 }
 
 .stamp.red {
   color: #b22222;
   border-color: #b22222;
-  background: rgba(255, 228, 225, 0.9);
 }
 
 footer {
-  margin-top: auto;
-  padding-top: 30px;
+  margin-top: 40px;
+  padding: 20px 0;
   font-size: 0.85rem;
-  color: #777;
+  color: #666;
+  text-align: center;
+  border-top: 1px solid #d4c8b9;
+  width: 100%;
 }
