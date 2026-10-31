@@ -32,28 +32,28 @@ module.exports = async function handler(req, res) {
   const systemInstruction = `
     You are the official lead inspector for BandStamp (bandstamp.com). Search the web for active touring news, stage rosters, hiatuses, and departure facts for the requested band.
 
-    CRITICAL RULES & DISBANDED BAND PROTOCOL:
-    1. DISBANDED/RETIRED BANDS (e.g. The Beatles, Led Zeppelin, Nirvana, Talking Heads, R.E.M.):
+    CRITICAL DISBANDED & INACTIVE BAND RULES:
+    1. DISBANDED / INACTIVE BANDS (e.g., The Beatles, Led Zeppelin, Nirvana, Talking Heads, R.E.M.):
        - Set is_currently_touring to FALSE.
-       - DO NOT invent or fabricate active 2025/2026 tours for defunct bands just because surviving members tour solo.
-       - Evaluate their LAST OFFICIAL FULL-BAND TOUR prior to breakup/retirement (e.g., The Beatles' 1966 final tour featured ALL 4 core members: John Lennon, Paul McCartney, George Harrison, Ringo Starr).
-    2. baseline_members: Include ALL primary founding members AND iconic core breakthrough era members.
-    3. touring_members_present: List ONLY baseline_members who actually performed on stage during the evaluated tour (the current 2025/2026 tour for active bands, or the last official tour for defunct bands).
-    4. CROSS-CHECK MANDATE: Any baseline or long-standing core member mentioned as missing or departed in editorial_summary MUST be in baseline_members and ABSENT from touring_members_present.
-    5. frontman_name: Primary lead singer.
-    6. frontman_present: true if frontman performed on the evaluated tour, false otherwise.
-    7. tour_context: Short descriptor (e.g. "2026 Tour" or "1966 Final Tour").
-    8. editorial_summary: A punchy 2-3 sentence audit narrative in the voice of a witty music auditor. Note tour status, who was on stage, and who was missing. DO NOT write raw math equations like "(4/4)*100=100%".
+       - Set touring_members_present to an EMPTY ARRAY [] (since 0 original members are currently performing on stage together under this band name).
+    2. ACTIVE BANDS (e.g., The Strokes, Guns N' Roses, Metallica):
+       - Set is_currently_touring to TRUE.
+       - touring_members_present: List ONLY those baseline_members who actively perform in current stage shows.
+    3. baseline_members: Include ALL primary founding members AND iconic core breakthrough era members (e.g. The Beatles = John Lennon, Paul McCartney, George Harrison, Ringo Starr).
+    4. frontman_name: Primary lead singer.
+    5. frontman_present: true if frontman actively performs on stage today, false if missing/deceased/inactive.
+    6. tour_context: Short descriptor (e.g. "2026 Tour" or "Disbanded / Inactive").
+    7. editorial_summary: A punchy 2-3 sentence audit narrative in the voice of a witty music auditor. Explain their current touring reality (or official disbandment/retirement) and why they hold their current score. DO NOT write raw math equations like "(0/4)*100=0%".
 
-    Return ONLY valid JSON matching this schema:
+    Return ONLY valid JSON:
     {
       "band_name": "Standardized Band Name",
       "baseline_members": ["Member 1", "Member 2"],
-      "touring_members_present": ["Member 1", "Member 2"],
+      "touring_members_present": [],
       "frontman_name": "Frontman Name",
-      "frontman_present": true,
-      "is_currently_touring": true,
-      "tour_context": "2026 Tour",
+      "frontman_present": false,
+      "is_currently_touring": false,
+      "tour_context": "Disbanded / Inactive",
       "editorial_summary": "Witty audit blurb here..."
     }
   `;
@@ -94,7 +94,13 @@ module.exports = async function handler(req, res) {
 
     // Deterministic Math in JS
     const baselineList = data.baseline_members || [];
-    const touringList = data.touring_members_present || [];
+    let touringList = data.touring_members_present || [];
+
+    // Force 0 active members if the band is not currently touring / disbanded
+    if (data.is_currently_touring === false) {
+      touringList = [];
+    }
+
     const totalBase = baselineList.length || 1;
     const presentBase = touringList.length;
 
