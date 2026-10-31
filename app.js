@@ -35,14 +35,14 @@ async function runBandAudit() {
     // 1. Fetch band image from Wikipedia API
     const imageUrl = await fetchBandImage(query);
 
-    // 2. Fetch AI audit from Vercel backend endpoint (/api/audit)
+    // 2. Fetch AI audit from Vercel backend endpoint
     const auditData = await fetchAIAudit(query);
 
     // 3. Render results on screen
     renderResult(imageUrl, auditData);
   } catch (error) {
     console.error("BandStamp Audit Error:", error);
-    alert("Audit failed: " + error.message);
+    alert(error.message);
   } finally {
     loadingDiv.classList.add("hidden");
   }
@@ -71,18 +71,34 @@ async function fetchBandImage(bandName) {
 // AI AUDIT ENGINE (CALLS VERCEL BACKEND)
 // ==========================================
 async function fetchAIAudit(bandName) {
-  const response = await fetch("/api/audit", {
+  let response = await fetch("/api/audit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ bandName: bandName })
   });
 
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error || `Server error (${response.status})`);
+  // Fallback check if route requires explicit .js extension
+  if (response.status === 404) {
+    response = await fetch("/api/audit.js", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bandName: bandName })
+    });
   }
 
-  return await response.json();
+  const rawText = await response.text();
+  let data;
+  try {
+    data = JSON.parse(rawText);
+  } catch (e) {
+    throw new Error(`Server endpoint returned error (${response.status}): ${rawText.slice(0, 150)}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || `Server error (${response.status})`);
+  }
+
+  return data;
 }
 
 // ==========================================
