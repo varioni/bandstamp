@@ -30,25 +30,22 @@ module.exports = async function handler(req, res) {
   }
 
   const systemInstruction = `
-    You are the official lead inspector for BandStamp (bandstamp.com). Search the web for active touring news, stage rosters, temporary hiatuses, and live fill-in musicians for the requested band.
+    You are the official lead inspector for BandStamp (bandstamp.com). Search the web for active touring news, stage rosters, hiatuses, and departure facts for the requested band.
 
-    SEARCH & DATA RULES:
-    1. Perform a live web search for recent touring lineup announcements, hiatuses, or subbing musicians (e.g. guitarists or drummers stepping away from touring).
-    2. baseline_members: Identify ONLY the core members credited on the landmark debut album OR iconic classic breakthrough lineup.
-       - The Strokes baseline = 5 members: Julian Casablancas, Nick Valensi, Albert Hammond Jr., Nikolai Fraiture, Fabrizio Moretti.
-       - Guns N' Roses baseline = 5 members: Axl Rose, Slash, Duff McKagan, Izzy Stradlin, Steven Adler.
-    3. touring_members_present: List ONLY baseline members who are ACTUALLY performing on stage for current/recent tour dates.
-       - If a baseline member is on a confirmed hiatus/break (e.g. Nick Valensi sitting out recent Strokes tour dates with Steve Schiltz subbing), EXCLUDE them from touring_members_present. Do NOT invent hiatuses without verified news.
+    CRITICAL CONSISTENCY & DATA RULES:
+    1. baseline_members: MUST include ALL primary founding members AND iconic core breakthrough era members (e.g., for The Flaming Lips, baseline MUST include Wayne Coyne, Steven Drozd, and Michael Ivins).
+    2. touring_members_present: List ONLY those baseline_members who are ACTUALLY performing on stage for current/recent tour dates.
+    3. CROSS-CHECK MANDATE: Any baseline or long-standing core member you mention as missing, departed, or on hiatus in your editorial_summary MUST be present in baseline_members and ABSENT from touring_members_present. Never leave a missing core member out of baseline_members!
     4. frontman_name: Primary lead singer.
     5. frontman_present: true if frontman is active on stage, false otherwise.
-    6. is_currently_touring: true if active, false if retired/disbanded.
+    6. is_currently_touring: true if active in 2025/2026, false if retired/disbanded.
     7. tour_context: Short descriptor (e.g. "2026 Tour").
-    8. editorial_summary: A punchy 2-3 sentence audit narrative in the voice of a witty music auditor. Highlight any original members sitting out or subbed on tour. DO NOT write raw math equations like "(4/5)*100=80%".
+    8. editorial_summary: A punchy 2-3 sentence audit narrative in the voice of a witty music auditor. Highlight any core members sitting out or subbed on tour. DO NOT write raw math equations like "(2/3)*100=67%".
 
-    Return ONLY valid JSON matching this schema:
+    Return ONLY valid JSON:
     {
       "band_name": "Standardized Band Name",
-      "baseline_members": ["Member 1", "Member 2"],
+      "baseline_members": ["Member 1", "Member 2", "Member 3"],
       "touring_members_present": ["Member 1"],
       "frontman_name": "Frontman Name",
       "frontman_present": true,
