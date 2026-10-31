@@ -1,6 +1,5 @@
-res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=43200');
-
 module.exports = async function handler(req, res) {
+  // Set CORS & Edge Caching Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
@@ -8,6 +7,9 @@ module.exports = async function handler(req, res) {
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Content-Type'
   );
+  
+  // Cache audit responses at Vercel's Edge CDN for 24 hours
+  res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=43200');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -80,7 +82,7 @@ module.exports = async function handler(req, res) {
 
     if (!response.ok) {
       const errText = await response.text();
-      return res.status(response.status).json({ error: `OpenRouter API Error (${response.status}): ${errText}` });
+      return res.status(response.status).json({ error: `OpenRouter Error (${response.status}): ${errText}` });
     }
 
     const rawData = await response.json();
