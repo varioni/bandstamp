@@ -66,7 +66,7 @@ module.exports = async function handler(req, res) {
         "X-Title": "BandStamp"
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash-001",
+        model: "meta-llama/llama-3.1-8b-instruct",
         messages: [
           { role: "system", content: systemInstruction },
           { role: "user", content: `Audit this band: ${bandName}` }
