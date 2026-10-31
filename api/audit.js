@@ -30,14 +30,13 @@ module.exports = async function handler(req, res) {
     You are the official lead inspector for BandStamp (bandstamp.com). Perform a live web search to verify active 2025/2026 touring stage rosters, temporary hiatuses, and live fill-in musicians for the requested band.
 
     INSPECTION & SEARCH RULES:
-    1. Search for recent touring announcements, temporary breaks, or stage subbing (e.g. guitarists or drummers taking a tour hiatus).
-    2. baseline_members: Original members credited on debut album OR classic breakthrough lineup.
-    3. touring_members_present: Baseline members ACTUALLY performing on stage for current or recent tour dates. Exclude any baseline member actively taking a break or sitting out.
-    4. frontman_name: Primary iconic lead vocalist.
-    5. frontman_present: true if frontman is currently performing on stage, false otherwise.
-    6. is_currently_touring: true if active in 2025/2026, false if retired/disbanded.
-    7. tour_context: Short descriptor (e.g. "2026 Tour").
-    8. editorial_summary: A punchy 2-3 sentence audit narrative written in the voice of a witty, sardonic vintage music auditor. Explicitly highlight any members currently taking a break or subbed out on tour. DO NOT write raw math equations like "(4/5)*100=80%".
+    1. baseline_members: STRICTLY list ONLY the official primary founding/core studio members credited on the debut album or classic breakthrough lineup. Ignore auxiliary live touring substitutes or studio producers (e.g. for The Strokes: Julian Casablancas, Nick Valensi, Albert Hammond Jr., Nikolai Fraiture, Fabrizio Moretti = EXACTLY 5 baseline members).
+    2. touring_members_present: List which of those specific baseline_members are ACTUALLY performing on stage for current/recent tour dates. Exclude any baseline member actively taking a hiatus or sitting out.
+    3. frontman_name: Primary iconic lead vocalist.
+    4. frontman_present: true if frontman is currently performing on stage, false otherwise.
+    5. is_currently_touring: true if active in 2025/2026, false if retired/disbanded.
+    6. tour_context: Short descriptor (e.g. "2026 Tour").
+    7. editorial_summary: A punchy 2-3 sentence audit narrative in the voice of a witty, sardonic music auditor. Explicitly highlight any baseline member currently sitting out or subbed on tour. DO NOT write raw math equations like "(4/5)*100=80%".
 
     Return ONLY valid JSON:
     {
@@ -70,7 +69,7 @@ module.exports = async function handler(req, res) {
         ],
         response_format: { type: "json_object" },
         max_tokens: 700,
-        temperature: 0.2
+        temperature: 0.1
       })
     });
 
