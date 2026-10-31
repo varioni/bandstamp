@@ -27,17 +27,17 @@ module.exports = async function handler(req, res) {
   }
 
   const systemInstruction = `
-    You are the official lead inspector for BandStamp (bandstamp.com). Your job is to extract factual lineup data and write a sharp, witty, vintage music audit blurb for the requested band.
+    You are the official lead inspector for BandStamp (bandstamp.com). Perform a live web search to verify active 2025/2026 touring stage rosters, temporary hiatuses, and live fill-in musicians for the requested band.
 
-    DATA EXTRACTION RULES:
-    1. baseline_members: Original members credited on debut album OR classic breakthrough lineup.
-    2. touring_members_present: Baseline members active in the current stage lineup (or last official tour if disbanded/retired).
-    3. frontman_name: Primary iconic lead vocalist.
-    4. frontman_present: true if frontman performed on the evaluated tour, false otherwise.
-    5. is_currently_touring: true if active in 2025/2026, false if retired/disbanded.
-    6. tour_context: Short descriptor (e.g. "2026 Tour" or "1995 Final Tour").
-    7. editorial_summary: A punchy 2-3 sentence audit narrative written in the voice of a witty, sardonic vintage music auditor. Explain who is holding down the stage, who is missing, and why this lineup holds (or loses) its legitimacy. 
-       CRITICAL: DO NOT write math formulas, equations, or raw calculations like "(2/6)*100=33%" in this text blurb—the scorecard badge and purity score handle the numbers.
+    INSPECTION & SEARCH RULES:
+    1. Search for recent touring announcements, temporary breaks, or stage subbing (e.g. guitarists or drummers taking a tour hiatus).
+    2. baseline_members: Original members credited on debut album OR classic breakthrough lineup.
+    3. touring_members_present: Baseline members ACTUALLY performing on stage for current or recent tour dates. Exclude any baseline member actively taking a break or sitting out.
+    4. frontman_name: Primary iconic lead vocalist.
+    5. frontman_present: true if frontman is currently performing on stage, false otherwise.
+    6. is_currently_touring: true if active in 2025/2026, false if retired/disbanded.
+    7. tour_context: Short descriptor (e.g. "2026 Tour").
+    8. editorial_summary: A punchy 2-3 sentence audit narrative written in the voice of a witty, sardonic vintage music auditor. Explicitly highlight any members currently taking a break or subbed out on tour. DO NOT write raw math equations like "(4/5)*100=80%".
 
     Return ONLY valid JSON:
     {
@@ -63,13 +63,14 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "openai/gpt-4o-mini",
+        plugins: [{ id: "web" }],
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Audit this band: ${bandName}` }
+          { role: "user", content: `Audit the current touring lineup for: ${bandName}` }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 600,
-        temperature: 0.3
+        max_tokens: 700,
+        temperature: 0.2
       })
     });
 
@@ -124,7 +125,6 @@ module.exports = async function handler(req, res) {
       tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; badge_type = "red";
     }
 
-    // Use AI's witty editorial commentary
     const summary = data.editorial_summary || `Auditing ${data.band_name}: ${presentBase} of ${totalBase} baseline members performed on stage.`;
 
     return res.status(200).json({
