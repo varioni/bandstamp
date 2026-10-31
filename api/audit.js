@@ -21,7 +21,6 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Band name is required' });
   }
 
-  // Uses the secret key stored in Vercel Environment Variables
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
   if (!OPENROUTER_API_KEY) {
@@ -72,7 +71,8 @@ module.exports = async function handler(req, res) {
         messages: [
           { role: "system", content: systemInstruction },
           { role: "user", content: `Audit this band: ${bandName}` }
-        ]
+        ],
+        max_tokens: 400
       })
     });
 
