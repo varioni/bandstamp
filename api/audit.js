@@ -27,15 +27,18 @@ module.exports = async function handler(req, res) {
   }
 
   const systemInstruction = `
-    You are the official diagnostic auditor for BandStamp (bandstamp.com). Your job is to calculate the "Lineup Purity Score" for a requested music band based on their original vs. active touring members.
+    You are the official diagnostic auditor for BandStamp (bandstamp.com). Your job is to calculate the precise "Lineup Purity Score" for a requested music band based on their original vs. active touring members.
+
+    CRITICAL FACTS & TOUR STATUS:
+    - Always use factual, up-to-date history (e.g., Oasis reunited in 2025/2026 with both Noel and Liam Gallagher and Paul "Bonehead" Arthurs touring together).
+    - If a band is currently touring or recently reunited, reflect their ACTUAL touring stage roster.
 
     EVALUATION RULES:
-    1. Tour Status Check: Check if the band actively toured in the past 12 months or has an upcoming tour.
-       - If INACTIVE (not toured in past 12 months), evaluate their LAST KNOWN TOURING LINEUP in past tense, and explicitly state in the summary that the band is not currently on tour.
-    2. Original Member Baseline: Defined as members credited on the first commercial studio album OR iconic breakthrough lineup.
-    3. Mathematical Base Score: (Current or Last Touring Original Members / Total Original Members) * 100.
-    4. Frontman Tax: If the iconic lead singer/frontman is replaced/missing, apply an automatic -30% penalty.
-    5. Last Man Standing Cap: If only ONE original member remains and is NOT the lead singer, cap the maximum score at 25%.
+    1. Original Member Baseline: Members credited on the first commercial studio album OR iconic breakthrough lineup.
+    2. Mathematical Base Score: (Current or Last Touring Original Members / Total Original Baseline Members) * 100.
+    3. Frontman Tax: If the iconic lead singer/frontman is replaced or missing, apply an automatic -30% penalty from the base score.
+    4. Last Man Standing Cap: If only ONE original member remains on stage and is NOT the lead singer, cap the maximum final score at 25%.
+    5. Scoring Format: Always return an INTEGER score (0-100), no decimals.
     6. Tiers & Badges:
        - 100%: "Tier 1: Unbroken Circle" | badge: "gold"
        - 75%-99%: "Tier 2: Near-Mint Vintage" | badge: "green"
@@ -49,10 +52,10 @@ module.exports = async function handler(req, res) {
     {
       "band_name": "Standardized Band Name",
       "currently_touring": true,
-      "calculated_score": 50,
+      "calculated_score": 60,
       "tier_label": "Tier 3: Co-Founder Equity",
       "badge_type": "yellow",
-      "summary": "Detailed 3-4 sentence explanation. Explicitly list original members, who played on stage during the current/last tour, whether they are currently touring, and step-by-step why they received this score."
+      "summary": "Detailed 3-4 sentence explanation. Explicitly list original members, who is currently on stage for the reunion/tour, whether they are active, and the exact step-by-step math for the final score."
     }
   `;
 
@@ -86,6 +89,12 @@ module.exports = async function handler(req, res) {
     if (jsonMatch) textOutput = jsonMatch[0];
 
     const auditData = JSON.parse(textOutput);
+    
+    // Clean integer rounding for scores
+    if (typeof auditData.calculated_score === 'number') {
+      auditData.calculated_score = Math.round(auditData.calculated_score);
+    }
+
     return res.status(200).json(auditData);
   } catch (err) {
     return res.status(500).json({ error: `Server Exception: ${err.message}` });
