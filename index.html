@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BandStamp | Lineup Purity Index</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Header & Logo -->
+  <header>
+    <div class="logo-container">
+      <img src="logo.png" alt="BandStamp Logo" class="site-logo" width="40" />
+      <h1>BandStamp</h1>
+    </div>
+    <p class="tagline">The Official Lineup Purity Audit for Live Music</p>
+  </header>
+
+  <!-- Main Search Container -->
+  <main>
+    <div class="search-box">
+      <input type="text" id="band-input" placeholder="Enter a touring band (e.g. U2, Queen)..." />
+      <button id="stamp-btn">Stamp This Band</button>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loading" class="hidden">
+      <p>Auditing stage roster...</p>
+    </div>
+
+    <!-- Result Display Card -->
+    <div id="result-card" class="card hidden">
+      <div class="image-wrapper">
+        <img id="band-photo" src="" alt="Band Photo" />
+        <!-- CSS Stamp Overlay -->
+        <div id="stamp-overlay" class="stamp"></div>
+      </div>
+
+      <div class="card-details">
+        <h2 id="band-name-heading"></h2>
+        <div id="tier-badge" class="badge"></div>
+        <div class="score-display">
+          <span class="label">Purity Score:</span>
+          <span id="score-value"></span>
+        </div>
+        <p id="audit-summary"></p>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 BandStamp. Lineup verification for live music fans.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
