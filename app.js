@@ -1,5 +1,5 @@
 // ==========================================
-// CONFIGURATION (Using OpenRouter Key)
+// CONFIGURATION (OpenRouter Key)
 // ==========================================
 const OPENROUTER_API_KEY = "Sk-or-v1-1c20c0152cfa5c6b8a319c25ea2304c61b60d999ddac4a439ff49cd8b86aecbb";
 
@@ -46,8 +46,8 @@ async function runBandAudit() {
     // 3. Render results on screen
     renderResult(imageUrl, auditData);
   } catch (error) {
-    console.error(error);
-    alert("Audit failed. Please check your network and try again.");
+    console.error("BandStamp Audit Error:", error);
+    alert("Audit failed: " + error.message);
   } finally {
     loadingDiv.classList.add("hidden");
   }
@@ -59,16 +59,17 @@ async function runBandAudit() {
 async function fetchBandImage(bandName) {
   try {
     const response = await fetch(
-      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bandName)}`
+      `[https://en.wikipedia.org/api/rest_v1/page/summary/$](https://en.wikipedia.org/api/rest_v1/page/summary/$){encodeURIComponent(bandName)}`
     );
+    if (!response.ok) throw new Error("Wikipedia image not found");
     const data = await response.json();
     if (data.thumbnail && data.thumbnail.source) {
       return data.thumbnail.source;
     }
   } catch (e) {
-    console.log("Image search fallback triggered", e);
+    console.log("Image search fallback triggered:", e);
   }
-  return "https://via.placeholder.com/600x400/2b2b2b/ffffff?text=Band+Photo+Not+Found";
+  return "[https://via.placeholder.com/600x400/2b2b2b/ffffff?text=Band+Photo+Not+Found](https://via.placeholder.com/600x400/2b2b2b/ffffff?text=Band+Photo+Not+Found)";
 }
 
 // ==========================================
@@ -97,25 +98,22 @@ async function fetchAIAudit(bandName) {
     JSON structure:
     {
       "band_name": "Standardized Band Name",
-      "currently_touring": true or false,
-      "calculated_score": 0-100,
-      "tier_label": "Tier name string",
-      "badge_type": "gold" or "green" or "yellow" or "orange" or "red",
+      "currently_touring": true,
+      "calculated_score": 50,
+      "tier_label": "Tier 3: Co-Founder Equity",
+      "badge_type": "yellow",
       "summary": "Detailed 3-4 sentence explanation. Explicitly list original members, who played on stage during the current/last tour, whether they are currently touring, and step-by-step why they received this score."
     }
   `;
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const response = await fetch("[https://openrouter.ai/api/v1/chat/completions](https://openrouter.ai/api/v1/chat/completions)", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-      "HTTP-Referer": "https://bandstamp.com",
-      "X-Title": "BandStamp",
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
       model: "meta-llama/llama-3.3-70b-instruct",
-      response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemInstruction },
         { role: "user", content: `Audit this band: ${bandName}` }
@@ -123,8 +121,24 @@ async function fetchAIAudit(bandName) {
     })
   });
 
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenRouter API error (${response.status}): ${errorText}`);
+  }
+
   const rawData = await response.json();
-  const textOutput = rawData.choices[0].message.content;
+  if (!rawData.choices || !rawData.choices[0] || !rawData.choices[0].message) {
+    throw new Error("Invalid response structure from AI provider.");
+  }
+
+  let textOutput = rawData.choices[0].message.content.trim();
+  
+  // Safely extract JSON even if wrapped in markdown code blocks
+  const jsonMatch = textOutput.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    textOutput = jsonMatch[0];
+  }
+
   return JSON.parse(textOutput);
 }
 
