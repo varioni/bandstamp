@@ -1,5 +1,4 @@
 module.exports = async function handler(req, res) {
-  // Set CORS & Edge Caching Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
@@ -8,8 +7,8 @@ module.exports = async function handler(req, res) {
     'X-CSRF-Token, X-Requested-With, Accept, Content-Type'
   );
   
-  // Cache audit responses at Vercel's Edge CDN for 24 hours
-  res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=43200');
+  // Cache audit responses at Vercel's Edge CDN for 12 hours
+  res.setHeader('Cache-Control', 's-maxage=43200, stale-while-revalidate=21600');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -31,22 +30,22 @@ module.exports = async function handler(req, res) {
   }
 
   const systemInstruction = `
-    You are the official lead inspector for BandStamp (bandstamp.com). Your sole duty is to extract standard rock history facts for classic and modern bands.
+    You are the official lead inspector for BandStamp (bandstamp.com). Search the web for active touring news, stage rosters, temporary hiatuses, and live fill-in musicians for the requested band.
 
-    STRICT DATA RULES:
-    1. baseline_members: Identify ONLY the core members credited on the landmark debut album OR iconic classic breakthrough lineup.
-       - Guns N' Roses MUST baseline as 5 members: Axl Rose, Slash, Duff McKagan, Izzy Stradlin, Steven Adler.
-       - The Strokes MUST baseline as 5 members: Julian Casablancas, Nick Valensi, Albert Hammond Jr., Nikolai Fraiture, Fabrizio Moretti.
-       - Metallica MUST baseline as 4 members: James Hetfield, Lars Ulrich, Kirk Hammett, Cliff Burton.
-    2. touring_members_present: List ONLY those baseline members who ACTUALLY perform in the current (or last official) touring stage roster. Ignore hired backing musicians or late-era additions (e.g. keyboards/second guitarists).
-       - For Guns N' Roses, current touring baseline members present are EXACTLY 3: Axl Rose, Slash, Duff McKagan (Izzy and Steven are absent).
-    3. frontman_name: Lead singer.
-    4. frontman_present: true if frontman is currently active on stage, false otherwise.
-    5. is_currently_touring: true if active, false if retired/disbanded.
-    6. tour_context: Short descriptor (e.g. "2026 Tour").
-    7. editorial_summary: A punchy 2-3 sentence audit narrative in the voice of a witty music auditor. Mention who is on stage, who is missing from the original baseline lineup, and why they receive this score. DO NOT write math equations like "(3/5)*100=60%".
+    SEARCH & DATA RULES:
+    1. Perform a live web search for recent touring lineup announcements, hiatuses, or subbing musicians (e.g. guitarists or drummers stepping away from touring).
+    2. baseline_members: Identify ONLY the core members credited on the landmark debut album OR iconic classic breakthrough lineup.
+       - The Strokes baseline = 5 members: Julian Casablancas, Nick Valensi, Albert Hammond Jr., Nikolai Fraiture, Fabrizio Moretti.
+       - Guns N' Roses baseline = 5 members: Axl Rose, Slash, Duff McKagan, Izzy Stradlin, Steven Adler.
+    3. touring_members_present: List ONLY baseline members who are ACTUALLY performing on stage for current/recent tour dates.
+       - If a baseline member is on a confirmed hiatus/break (e.g. Nick Valensi sitting out recent Strokes tour dates with Steve Schiltz subbing), EXCLUDE them from touring_members_present. Do NOT invent hiatuses without verified news.
+    4. frontman_name: Primary lead singer.
+    5. frontman_present: true if frontman is active on stage, false otherwise.
+    6. is_currently_touring: true if active, false if retired/disbanded.
+    7. tour_context: Short descriptor (e.g. "2026 Tour").
+    8. editorial_summary: A punchy 2-3 sentence audit narrative in the voice of a witty music auditor. Highlight any original members sitting out or subbed on tour. DO NOT write raw math equations like "(4/5)*100=80%".
 
-    Return ONLY valid JSON:
+    Return ONLY valid JSON matching this schema:
     {
       "band_name": "Standardized Band Name",
       "baseline_members": ["Member 1", "Member 2"],
@@ -70,13 +69,14 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "openai/gpt-4o-mini",
+        plugins: [{ id: "web" }],
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Audit this band: ${bandName}` }
+          { role: "user", content: `Audit the current touring lineup for: ${bandName}` }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 600,
-        temperature: 0.0
+        max_tokens: 700,
+        temperature: 0.1
       })
     });
 
