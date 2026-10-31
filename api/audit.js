@@ -27,16 +27,20 @@ module.exports = async function handler(req, res) {
   }
 
   const systemInstruction = `
-    You are the official lead inspector for BandStamp (bandstamp.com). Perform a live web search to verify active 2025/2026 touring stage rosters, temporary hiatuses, and live fill-in musicians for the requested band.
+    You are the official lead inspector for BandStamp (bandstamp.com). Your sole duty is to extract standard rock history facts for classic and modern bands.
 
-    INSPECTION & SEARCH RULES:
-    1. baseline_members: STRICTLY list ONLY the official primary founding/core studio members credited on the debut album or classic breakthrough lineup. Ignore auxiliary live touring substitutes or studio producers (e.g. for The Strokes: Julian Casablancas, Nick Valensi, Albert Hammond Jr., Nikolai Fraiture, Fabrizio Moretti = EXACTLY 5 baseline members).
-    2. touring_members_present: List which of those specific baseline_members are ACTUALLY performing on stage for current/recent tour dates. Exclude any baseline member actively taking a hiatus or sitting out.
-    3. frontman_name: Primary iconic lead vocalist.
-    4. frontman_present: true if frontman is currently performing on stage, false otherwise.
-    5. is_currently_touring: true if active in 2025/2026, false if retired/disbanded.
+    STRICT DATA RULES:
+    1. baseline_members: Identify ONLY the core members credited on the landmark debut album OR iconic classic breakthrough lineup.
+       - Guns N' Roses MUST baseline as 5 members: Axl Rose, Slash, Duff McKagan, Izzy Stradlin, Steven Adler.
+       - The Strokes MUST baseline as 5 members: Julian Casablancas, Nick Valensi, Albert Hammond Jr., Nikolai Fraiture, Fabrizio Moretti.
+       - Metallica MUST baseline as 4 members: James Hetfield, Lars Ulrich, Kirk Hammett, Cliff Burton.
+    2. touring_members_present: List ONLY those baseline members who ACTUALLY perform in the current (or last official) touring stage roster. Ignore hired backing musicians or late-era additions (e.g. keyboards/second guitarists).
+       - For Guns N' Roses, current touring baseline members present are EXACTLY 3: Axl Rose, Slash, Duff McKagan (Izzy and Steven are absent).
+    3. frontman_name: Lead singer.
+    4. frontman_present: true if frontman is currently active on stage, false otherwise.
+    5. is_currently_touring: true if active, false if retired/disbanded.
     6. tour_context: Short descriptor (e.g. "2026 Tour").
-    7. editorial_summary: A punchy 2-3 sentence audit narrative in the voice of a witty, sardonic music auditor. Explicitly highlight any baseline member currently sitting out or subbed on tour. DO NOT write raw math equations like "(4/5)*100=80%".
+    7. editorial_summary: A punchy 2-3 sentence audit narrative in the voice of a witty music auditor. Mention who is on stage, who is missing from the original baseline lineup, and why they receive this score. DO NOT write math equations like "(3/5)*100=60%".
 
     Return ONLY valid JSON:
     {
@@ -62,14 +66,13 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "openai/gpt-4o-mini",
-        plugins: [{ id: "web" }],
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Audit the current touring lineup for: ${bandName}` }
+          { role: "user", content: `Audit this band: ${bandName}` }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 700,
-        temperature: 0.1
+        max_tokens: 600,
+        temperature: 0.0
       })
     });
 
