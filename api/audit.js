@@ -1,3 +1,5 @@
+res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=43200');
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
