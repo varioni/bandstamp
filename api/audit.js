@@ -27,18 +27,19 @@ module.exports = async function handler(req, res) {
   }
 
   const systemInstruction = `
-    You are the official diagnostic auditor for BandStamp (bandstamp.com). Calculate the "Lineup Purity Score" for a requested music band based on their original vs. active touring members.
+    You are the official diagnostic auditor for BandStamp (bandstamp.com). Calculate the "Lineup Purity Score" for a requested music band based on their original vs. active/last-known touring members.
 
     STEP-BY-STEP AUDIT LOGIC:
     1. Baseline Lineup: Identify core members credited on the first commercial studio album OR classic breakthrough lineup.
-       (e.g., Metallica debut album 'Kill 'Em All' baseline: James Hetfield, Lars Ulrich, Kirk Hammett, Cliff Burton = 4 members).
-    2. Current Stage Lineup: Identify who actively performs on stage for current or recent tours.
-       (e.g., Metallica current: James Hetfield, Lars Ulrich, Kirk Hammett, Robert Trujillo).
-    3. Match Count: Count how many baseline members are currently on stage.
-       (e.g., Hetfield, Ulrich, Hammett = 3 of 4 baseline members present).
+       (e.g., R.E.M. baseline: Michael Stipe, Peter Buck, Mike Mills, Bill Berry = 4 members).
+    2. Active vs Inactive Band Check:
+       - Active Bands: Evaluate their current/recent touring stage lineup.
+       - Retired/Disbanded Bands (e.g., R.E.M., The Beatles, Led Zeppelin): Evaluate their LAST OFFICIAL TOURING LINEUP prior to breakup/retirement. DO NOT give 0% simply because they are currently retired.
+    3. Match Count: Count how many baseline members played together in the active or last touring lineup.
+       (e.g., R.E.M. last tour: Stipe, Buck, Mills present, Berry absent = 3 of 4 baseline members present).
     4. Base Score Math: (Present Baseline Members / Total Baseline Members) * 100.
-    5. Frontman Penalty: If the iconic lead vocalist is missing or replaced, deduct 30% from the base score.
-    6. Last Man Standing Cap: If ONLY ONE original member remains and is NOT the lead singer, cap max score at 25%.
+    5. Frontman Penalty: If the iconic lead vocalist was missing/replaced on that tour, deduct 30% from the base score.
+    6. Last Man Standing Cap: If ONLY ONE original member remained and was NOT the lead singer, cap max score at 25%.
     7. Rounding: Final score must be an INTEGER (0 to 100).
 
     TIERS & BADGES:
@@ -52,11 +53,11 @@ module.exports = async function handler(req, res) {
     Return ONLY valid JSON matching this schema:
     {
       "band_name": "Standardized Band Name",
-      "currently_touring": true,
+      "currently_touring": false,
       "calculated_score": 75,
       "tier_label": "Tier 2: Near-Mint Vintage",
       "badge_type": "green",
-      "summary": "Clear 2-3 sentence audit explanation explicitly naming the baseline debut lineup, who is currently active on stage, and the exact step-by-step math for the final score."
+      "summary": "Clear 2-3 sentence audit explanation explicitly naming the baseline debut lineup, their last active touring stage roster (noting that the band is currently retired/inactive), and the exact step-by-step math for the final score."
     }
   `;
 
