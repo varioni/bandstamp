@@ -4,15 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BandStamp | Lineup Purity Index</title>
-  <!-- Link Google Fonts for the retro stamped aesthetic -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=3" />
 </head>
 <body>
 
-  <!-- Header & Logo (Stacked & Massive) -->
+  <!-- Header & Logo -->
   <header>
     <div class="logo-container">
       <img src="logo.png" alt="BandStamp Logo" class="site-logo" />
@@ -21,23 +20,21 @@
     <p class="tagline">The Official Lineup Purity Audit for Live Music</p>
   </header>
 
-  <!-- Main Search Container -->
   <main>
+    <!-- Search Box -->
     <div class="search-box">
       <input type="text" id="band-input" placeholder="Enter a touring band (e.g. U2, Queen)..." />
       <button id="stamp-btn">Stamp This Band</button>
     </div>
 
-    <!-- Loading Indicator -->
+    <!-- Dynamic Output Card (Rendered between Search and Permanent Scorecard) -->
     <div id="loading" class="hidden">
       <p>Auditing stage roster...</p>
     </div>
 
-    <!-- Result Display Card -->
     <div id="result-card" class="card hidden">
       <div class="image-wrapper">
         <img id="band-photo" src="" alt="Band Photo" />
-        <!-- CSS Stamp Overlay -->
         <div id="stamp-overlay" class="stamp"></div>
       </div>
 
@@ -51,6 +48,52 @@
         <p id="audit-summary"></p>
       </div>
     </div>
+
+    <!-- Permanent Scorecard Legend -->
+    <section class="scorecard-legend">
+      <h3 class="legend-title">Official Lineup Purity Scorecard</h3>
+      <div class="legend-list">
+        <div class="legend-item tier-gold">
+          <span class="legend-score">100%</span>
+          <div class="legend-text">
+            <span class="legend-name">Tier 1: Unbroken Circle</span>
+            <span class="legend-desc">Original founding lineup fully intact on stage.</span>
+          </div>
+        </div>
+
+        <div class="legend-item tier-green">
+          <span class="legend-score">75%–99%</span>
+          <div class="legend-text">
+            <span class="legend-name">Tier 2: Near-Mint Vintage</span>
+            <span class="legend-desc">Core members present with minimal lineup substitutions.</span>
+          </div>
+        </div>
+
+        <div class="legend-item tier-yellow">
+          <span class="legend-score">50%–74%</span>
+          <div class="legend-text">
+            <span class="legend-name">Tier 3: Co-Founder Equity</span>
+            <span class="legend-desc">At least half of the original core roster remains active.</span>
+          </div>
+        </div>
+
+        <div class="legend-item tier-orange">
+          <span class="legend-score">25%–49%</span>
+          <div class="legend-text">
+            <span class="legend-name">Tier 4: Solo Project in Disguise</span>
+            <span class="legend-desc">Heavy member loss or replaced iconic lead frontman.</span>
+          </div>
+        </div>
+
+        <div class="legend-item tier-red">
+          <span class="legend-score">0%–24%</span>
+          <div class="legend-text">
+            <span class="legend-name">Tier 5: The Ghost Ship (Zombie Franchise)</span>
+            <span class="legend-desc">No core original members or single non-singer remaining.</span>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer>
