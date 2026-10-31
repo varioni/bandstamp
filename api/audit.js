@@ -21,7 +21,12 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Band name is required' });
   }
 
-  const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "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";
+  // Uses the secret key stored in Vercel Environment Variables
+  const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+
+  if (!OPENROUTER_API_KEY) {
+    return res.status(500).json({ error: 'OPENROUTER_API_KEY environment variable is missing.' });
+  }
 
   const systemInstruction = `
     You are the official diagnostic auditor for BandStamp (bandstamp.com). Your job is to calculate the "Lineup Purity Score" for a requested music band based on their original vs. active touring members.
