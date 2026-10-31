@@ -1,118 +1,84 @@
-// ==========================================
-// DOM ELEMENTS
-// ==========================================
-const bandInput = document.getElementById("band-input");
-const stampBtn = document.getElementById("stamp-btn");
-const loadingDiv = document.getElementById("loading");
-const resultCard = document.getElementById("result-card");
+document.addEventListener('DOMContentLoaded', () => {
+  const stampBtn = document.getElementById('stamp-btn');
+  const bandInput = document.getElementById('band-input');
+  const loadingDiv = document.getElementById('loading');
+  const resultCard = document.getElementById('result-card');
 
-const bandPhoto = document.getElementById("band-photo");
-const stampOverlay = document.getElementById("stamp-overlay");
-const bandNameHeading = document.getElementById("band-name-heading");
-const tierBadge = document.getElementById("tier-badge");
-const scoreValue = document.getElementById("score-value");
-const auditSummary = document.getElementById("audit-summary");
+  const bandPhoto = document.getElementById('band-photo');
+  const imageWrapper = document.querySelector('.image-wrapper');
+  const stampOverlay = document.getElementById('stamp-overlay');
+  const bandNameHeading = document.getElementById('band-name-heading');
+  const tierBadge = document.getElementById('tier-badge');
+  const scoreValue = document.getElementById('score-value');
+  const auditSummary = document.getElementById('audit-summary');
 
-// ==========================================
-// EVENT LISTENERS
-// ==========================================
-stampBtn.addEventListener("click", runBandAudit);
-bandInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") runBandAudit();
-});
+  async function performAudit() {
+    const query = bandInput.value.trim();
+    if (!query) return;
 
-// ==========================================
-// MAIN AUDIT FUNCTION
-// ==========================================
-async function runBandAudit() {
-  const query = bandInput.value.trim();
-  if (!query) return;
+    // Reset UI state
+    loadingDiv.classList.remove('hidden');
+    resultCard.classList.add('hidden');
+    stampOverlay.className = 'stamp';
+    if (imageWrapper) imageWrapper.style.display = 'block';
 
-  loadingDiv.classList.remove("hidden");
-  resultCard.classList.add("hidden");
+    try {
+      // 1. Audit Request to Backend Endpoint
+      const res = await fetch('/api/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bandName: query })
+      });
 
-  try {
-    // 1. Fetch band image from Wikipedia API
-    const imageUrl = await fetchBandImage(query);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Audit request failed');
+      }
 
-    // 2. Fetch AI audit from Vercel backend endpoint
-    const auditData = await fetchAIAudit(query);
+      const data = await res.json();
 
-    // 3. Render results on screen
-    renderResult(imageUrl, auditData);
-  } catch (error) {
-    console.error("BandStamp Audit Error:", error);
-    alert(error.message);
-  } finally {
-    loadingDiv.classList.add("hidden");
-  }
-}
+      // 2. Fetch Photo via Wikipedia REST API with Auto-Hide Error Protection
+      try {
+        const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(data.band_name || query)}`);
+        if (wikiRes.ok) {
+          const wikiData = await wikiRes.json();
+          const imgSrc = wikiData.thumbnail?.source || wikiData.originalimage?.source;
+          if (imgSrc) {
+            bandPhoto.src = imgSrc;
+            bandPhoto.onerror = () => { if (imageWrapper) imageWrapper.style.display = 'none'; };
+          } else {
+            if (imageWrapper) imageWrapper.style.display = 'none';
+          }
+        } else {
+          if (imageWrapper) imageWrapper.style.display = 'none';
+        }
+      } catch (imgErr) {
+        if (imageWrapper) imageWrapper.style.display = 'none';
+      }
 
-// ==========================================
-// WIKIPEDIA IMAGE FETCH
-// ==========================================
-async function fetchBandImage(bandName) {
-  try {
-    const response = await fetch(
-      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bandName)}`
-    );
-    if (!response.ok) throw new Error("Wikipedia image not found");
-    const data = await response.json();
-    if (data.thumbnail && data.thumbnail.source) {
-      return data.thumbnail.source;
+      // 3. Populate Card UI
+      bandNameHeading.textContent = data.band_name;
+      scoreValue.textContent = `${data.calculated_score}%`;
+      tierBadge.textContent = data.tier_label;
+      tierBadge.className = 'badge';
+      auditSummary.textContent = data.summary;
+
+      // Stamp Overlay
+      stampOverlay.textContent = `${data.calculated_score}% PURITY`;
+      stampOverlay.classList.add(data.badge_type);
+
+      // Reveal Result Card
+      loadingDiv.classList.add('hidden');
+      resultCard.classList.remove('hidden');
+
+    } catch (err) {
+      loadingDiv.classList.add('hidden');
+      alert(`Audit Error: ${err.message}`);
     }
-  } catch (e) {
-    console.log("Image search fallback triggered:", e);
   }
-  return "https://via.placeholder.com/600x400/2b2b2b/ffffff?text=Band+Photo+Not+Found";
-}
 
-// ==========================================
-// AI AUDIT ENGINE (CALLS VERCEL BACKEND)
-// ==========================================
-async function fetchAIAudit(bandName) {
-  let response = await fetch("/api/audit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ bandName: bandName })
+  stampBtn.addEventListener('click', performAudit);
+  bandInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') performAudit();
   });
-
-  // Fallback check if route requires explicit .js extension
-  if (response.status === 404) {
-    response = await fetch("/api/audit.js", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bandName: bandName })
-    });
-  }
-
-  const rawText = await response.text();
-  let data;
-  try {
-    data = JSON.parse(rawText);
-  } catch (e) {
-    throw new Error(`Server endpoint returned error (${response.status}): ${rawText.slice(0, 150)}`);
-  }
-
-  if (!response.ok) {
-    throw new Error(data.error || `Server error (${response.status})`);
-  }
-
-  return data;
-}
-
-// ==========================================
-// DISPLAY RESULTS
-// ==========================================
-function renderResult(imageUrl, data) {
-  bandPhoto.src = imageUrl;
-  bandNameHeading.textContent = data.band_name;
-  tierBadge.textContent = data.tier_label;
-  scoreValue.textContent = `${data.calculated_score}%`;
-  auditSummary.textContent = data.summary;
-
-  stampOverlay.className = `stamp ${data.badge_type}`;
-  stampOverlay.textContent = `${data.calculated_score}% PURITY`;
-
-  resultCard.classList.remove("hidden");
-}
+});
