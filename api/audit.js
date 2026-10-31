@@ -1,5 +1,4 @@
 module.exports = async function handler(req, res) {
-  // Set CORS headers so browser calls are never blocked
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
@@ -67,12 +66,12 @@ module.exports = async function handler(req, res) {
         "X-Title": "BandStamp"
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3.3-70b-instruct",
+        model: "google/gemini-2.0-flash-001",
         messages: [
           { role: "system", content: systemInstruction },
           { role: "user", content: `Audit this band: ${bandName}` }
         ],
-        max_tokens: 400
+        max_tokens: 350
       })
     });
 
