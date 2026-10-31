@@ -29,32 +29,34 @@ module.exports = async function handler(req, res) {
   const systemInstruction = `
     You are the official diagnostic auditor for BandStamp (bandstamp.com). Calculate the "Lineup Purity Score" for a requested music band based on their original vs. active touring members.
 
-    CRITICAL FACTS & TOUR STATUS:
-    - Always use factual, up-to-date history (e.g., Oasis reunited in 2025/2026 with Liam Gallagher, Noel Gallagher, and Bonehead on stage).
-    - If a band is currently touring or recently reunited, reflect their ACTUAL touring stage roster.
+    STEP-BY-STEP AUDIT LOGIC:
+    1. Baseline Lineup: Identify core members credited on the first commercial studio album OR classic breakthrough lineup.
+       (e.g., Metallica debut album 'Kill 'Em All' baseline: James Hetfield, Lars Ulrich, Kirk Hammett, Cliff Burton = 4 members).
+    2. Current Stage Lineup: Identify who actively performs on stage for current or recent tours.
+       (e.g., Metallica current: James Hetfield, Lars Ulrich, Kirk Hammett, Robert Trujillo).
+    3. Match Count: Count how many baseline members are currently on stage.
+       (e.g., Hetfield, Ulrich, Hammett = 3 of 4 baseline members present).
+    4. Base Score Math: (Present Baseline Members / Total Baseline Members) * 100.
+    5. Frontman Penalty: If the iconic lead vocalist is missing or replaced, deduct 30% from the base score.
+    6. Last Man Standing Cap: If ONLY ONE original member remains and is NOT the lead singer, cap max score at 25%.
+    7. Rounding: Final score must be an INTEGER (0 to 100).
 
-    EVALUATION RULES:
-    1. Original Member Baseline: Members credited on first commercial studio album OR iconic breakthrough lineup.
-    2. Base Score Math: (Current or Last Touring Original Members / Total Original Baseline Members) * 100.
-    3. Frontman Tax: If iconic lead singer/frontman is missing/replaced, apply an automatic -30% penalty.
-    4. Last Man Standing Cap: If only ONE original member remains and is NOT lead singer, cap max score at 25%.
-    5. Format: Return integer score (0-100), no decimals.
-    6. Tiers & Badges:
-       - 100%: "Tier 1: Unbroken Circle" | badge: "gold"
-       - 75%-99%: "Tier 2: Near-Mint Vintage" | badge: "green"
-       - 50%-74%: "Tier 3: Co-Founder Equity" | badge: "yellow"
-       - 25%-49%: "Tier 4: Solo Project in Disguise" | badge: "orange"
-       - 0%-24%: "Tier 5: The Ghost Ship (Zombie Franchise)" | badge: "red"
+    TIERS & BADGES:
+    - 100%: "Tier 1: Unbroken Circle" | badge: "gold"
+    - 75%-99%: "Tier 2: Near-Mint Vintage" | badge: "green"
+    - 50%-74%: "Tier 3: Co-Founder Equity" | badge: "yellow"
+    - 25%-49%: "Tier 4: Solo Project in Disguise" | badge: "orange"
+    - 0%-24%: "Tier 5: The Ghost Ship (Zombie Franchise)" | badge: "red"
 
     OUTPUT REQUIREMENT:
     Return ONLY valid JSON matching this schema:
     {
       "band_name": "Standardized Band Name",
       "currently_touring": true,
-      "calculated_score": 60,
-      "tier_label": "Tier 3: Co-Founder Equity",
-      "badge_type": "yellow",
-      "summary": "Concise 2-sentence explanation listing original members, active stage members, tour status, and final score reasoning."
+      "calculated_score": 75,
+      "tier_label": "Tier 2: Near-Mint Vintage",
+      "badge_type": "green",
+      "summary": "Clear 2-3 sentence audit explanation explicitly naming the baseline debut lineup, who is currently active on stage, and the exact step-by-step math for the final score."
     }
   `;
 
@@ -68,14 +70,14 @@ module.exports = async function handler(req, res) {
         "X-Title": "BandStamp"
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3.1-8b-instruct",
+        model: "openai/gpt-4o-mini",
         messages: [
           { role: "system", content: systemInstruction },
           { role: "user", content: `Audit this band: ${bandName}` }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 800,
-        temperature: 0.2
+        max_tokens: 600,
+        temperature: 0.1
       })
     });
 
