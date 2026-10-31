@@ -26,17 +26,18 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: 'OPENROUTER_API_KEY environment variable is missing.' });
   }
 
-  // System prompt focuses ONLY on pure historical data retrieval
   const systemInstruction = `
-    You are a music historian data extractor for BandStamp (bandstamp.com). Extract accurate facts for the requested music band.
+    You are the official lead inspector for BandStamp (bandstamp.com). Your job is to extract factual lineup data and write a sharp, witty, vintage music audit blurb for the requested band.
 
-    DATA RETRIEVAL RULES:
-    1. baseline_members: List original members credited on debut album OR classic breakthrough lineup.
+    DATA EXTRACTION RULES:
+    1. baseline_members: Original members credited on debut album OR classic breakthrough lineup.
     2. touring_members_present: Baseline members active in the current stage lineup (or last official tour if disbanded/retired).
     3. frontman_name: Primary iconic lead vocalist.
-    4. frontman_present: Set to true if frontman performed in the evaluated touring lineup, false otherwise.
+    4. frontman_present: true if frontman performed on the evaluated tour, false otherwise.
     5. is_currently_touring: true if active in 2025/2026, false if retired/disbanded.
-    6. tour_context: Short descriptor (e.g. "2025/2026 Reunion Tour" or "1995 Final Tour").
+    6. tour_context: Short descriptor (e.g. "2026 Tour" or "1995 Final Tour").
+    7. editorial_summary: A punchy 2-3 sentence audit narrative written in the voice of a witty, sardonic vintage music auditor. Explain who is holding down the stage, who is missing, and why this lineup holds (or loses) its legitimacy. 
+       CRITICAL: DO NOT write math formulas, equations, or raw calculations like "(2/6)*100=33%" in this text blurb—the scorecard badge and purity score handle the numbers.
 
     Return ONLY valid JSON:
     {
@@ -46,7 +47,8 @@ module.exports = async function handler(req, res) {
       "frontman_name": "Frontman Name",
       "frontman_present": true,
       "is_currently_touring": true,
-      "tour_context": "2026 Tour"
+      "tour_context": "2026 Tour",
+      "editorial_summary": "Witty audit blurb here..."
     }
   `;
 
@@ -63,11 +65,11 @@ module.exports = async function handler(req, res) {
         model: "openai/gpt-4o-mini",
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Extract band facts for: ${bandName}` }
+          { role: "user", content: `Audit this band: ${bandName}` }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 500,
-        temperature: 0.0
+        max_tokens: 600,
+        temperature: 0.3
       })
     });
 
@@ -83,9 +85,7 @@ module.exports = async function handler(req, res) {
 
     const data = JSON.parse(textOutput);
 
-    // =========================================================
-    // DETERMINISTIC JAVASCRIPT MATH (Eliminates Hallucinations)
-    // =========================================================
+    // Deterministic Math in JS
     const baselineList = data.baseline_members || [];
     const touringList = data.touring_members_present || [];
     const totalBase = baselineList.length || 1;
@@ -93,19 +93,16 @@ module.exports = async function handler(req, res) {
 
     let baseScore = Math.round((presentBase / totalBase) * 100);
     let finalScore = baseScore;
-    let penaltyNotes = [];
 
     // 1. Frontman Tax (-30%)
     if (!data.frontman_present) {
       finalScore -= 30;
-      penaltyNotes.push("a 30% penalty for missing iconic lead frontman");
     }
 
     // 2. Last Man Standing Cap (Max 25%)
     if (presentBase === 1 && !data.frontman_present) {
       if (finalScore > 25) {
         finalScore = 25;
-        penaltyNotes.push("capped at 25% under the Last Man Standing rule");
       }
     }
 
@@ -127,15 +124,8 @@ module.exports = async function handler(req, res) {
       tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; badge_type = "red";
     }
 
-    // Programmatic Summary Construction
-    const tourStatusText = data.is_currently_touring
-      ? `Evaluating their ${data.tour_context || 'current stage lineup'}`
-      : `Evaluating their ${data.tour_context || 'last official tour'} (currently retired/inactive)`;
-
-    const membersText = presentBase > 0 ? touringList.join(', ') : 'none';
-    const penaltyText = penaltyNotes.length > 0 ? ` Applied ${penaltyNotes.join(" and ")}.` : '';
-
-    const summary = `Baseline lineup (${totalBase} members): ${baselineList.join(', ')}. ${tourStatusText}, ${presentBase} of ${totalBase} original members performed on stage (${membersText}). Base score: (${presentBase}/${totalBase}) * 100 = ${baseScore}%.${penaltyText} Final Purity Score: ${finalScore}%.`;
+    // Use AI's witty editorial commentary
+    const summary = data.editorial_summary || `Auditing ${data.band_name}: ${presentBase} of ${totalBase} baseline members performed on stage.`;
 
     return res.status(200).json({
       band_name: data.band_name,
