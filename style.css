@@ -13,21 +13,21 @@ body {
   min-height: 100vh;
 }
 
-/* Header & Logo Setup (Vertically Stacked) */
+/* Header & Logo Setup */
 header {
   text-align: center;
-  margin-bottom: 35px;
+  margin-bottom: 30px;
 }
 
 .logo-container {
   display: flex;
-  flex-direction: column; /* Stacks the logo above the text */
+  flex-direction: column;
   align-items: center;
   gap: 15px;
 }
 
 .site-logo {
-  width: 110px; /* Big enough to make vintage details readable */
+  width: 110px;
   height: auto;
   filter: drop-shadow(0px 3px 6px rgba(139, 0, 0, 0.15));
 }
@@ -35,7 +35,7 @@ header {
 .brand-title {
   margin: 0;
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 4.2rem; /* Punchy high impact header */
+  font-size: 4.2rem;
   color: #8b0000;
   text-transform: uppercase;
   letter-spacing: 2px;
@@ -59,7 +59,7 @@ main {
 .search-box {
   display: flex;
   gap: 10px;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
 
 input[type="text"] {
@@ -96,12 +96,6 @@ button {
 button:hover {
   background-color: #9d0a0a;
   transform: translateY(-1px);
-  box-shadow: 0 4px 0 #5e0000, 0 6px 8px rgba(0,0,0,0.15);
-}
-
-button:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 #5e0000, 0 1px 2px rgba(0,0,0,0.15);
 }
 
 .hidden {
@@ -114,7 +108,7 @@ button:active {
   font-family: 'Special Elite', cursive;
   font-size: 1.1rem;
   color: #8b0000;
-  margin: 30px 0;
+  margin: 20px 0;
   animation: pulse 1.5s infinite ease-in-out;
 }
 
@@ -130,7 +124,7 @@ button:active {
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(43, 40, 35, 0.12);
   overflow: hidden;
-  margin-top: 25px;
+  margin-bottom: 30px;
   border: 1px solid #d4c8b9;
 }
 
@@ -150,8 +144,7 @@ button:active {
 }
 
 .card-details {
-  padding: 30px;
-  position: relative;
+  padding: 25px;
 }
 
 .card-details h2 {
@@ -159,100 +152,150 @@ button:active {
   margin-bottom: 8px;
   font-family: 'Bebas Neue', sans-serif;
   font-size: 2.5rem;
-  letter-spacing: 1px;
   color: #1a1a1a;
   text-transform: uppercase;
 }
 
-/* Tier Badge Indicator */
 .badge {
   display: inline-block;
   font-family: 'Special Elite', cursive;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: bold;
   padding: 6px 12px;
   border-radius: 4px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   background-color: #2b2b2b;
   color: #fff;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .score-display {
-  font-size: 1.3rem;
-  margin: 15px 0;
-  font-family: 'Special Elite', cursive;
-}
-
-.score-display .label {
-  color: #555;
+  font-size: 1.2rem;
+  margin: 10px 0;
 }
 
 #score-value {
   font-weight: bold;
   color: #8b0000;
-  font-size: 1.4rem;
+  font-size: 1.3rem;
 }
 
 #audit-summary {
   font-family: inherit;
-  font-size: 1rem;
-  line-height: 1.72;
+  font-size: 0.95rem;
+  line-height: 1.65;
   color: #3a3a3a;
   margin-top: 15px;
   padding-top: 15px;
   border-top: 1px dashed #d4c8b9;
 }
 
-/* Rubber Stamp Overlay Styles */
+/* Rubber Stamp Overlay */
 .stamp {
   position: absolute;
-  top: 30px;
-  right: 30px;
-  padding: 12px 20px;
+  top: 25px;
+  right: 25px;
+  padding: 10px 18px;
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: bold;
   text-transform: uppercase;
   border-style: solid;
-  border-width: 5px;
+  border-width: 4px;
   border-radius: 8px;
   transform: rotate(-14deg);
   opacity: 0.95;
   letter-spacing: 1.5px;
-  text-align: center;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.7);
-  pointer-events: none;
   background-color: rgba(255, 255, 255, 0.95);
   box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 
-/* Distressed/Rough Stamp Color Variants */
-.stamp.gold {
-  color: #b8860b;
-  border-color: #b8860b;
+.stamp.gold { color: #b8860b; border-color: #b8860b; }
+.stamp.green { color: #2e8b57; border-color: #2e8b57; }
+.stamp.yellow { color: #d99b00; border-color: #d99b00; }
+.stamp.orange { color: #d2691e; border-color: #d2691e; }
+.stamp.red { color: #b22222; border-color: #b22222; }
+
+/* Permanent Scorecard Legend Section */
+.scorecard-legend {
+  background: #ffffff;
+  border: 1px solid #d4c8b9;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 15px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.04);
 }
 
-.stamp.green {
-  color: #2e8b57;
-  border-color: #2e8b57;
+.legend-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.8rem;
+  color: #8b0000;
+  margin: 0 0 15px 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: center;
+  border-bottom: 2px solid #f4f1ea;
+  padding-bottom: 8px;
 }
 
-.stamp.yellow {
-  color: #d99b00;
-  border-color: #d99b00;
+.legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.stamp.orange {
-  color: #d2691e;
-  border-color: #d2691e;
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border-left: 5px solid #2b2b2b;
+  background-color: #faf8f5;
 }
 
-.stamp.red {
-  color: #b22222;
-  border-color: #b22222;
+.legend-score {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem;
+  min-width: 80px;
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #fff;
 }
+
+.legend-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.legend-name {
+  font-weight: bold;
+  font-size: 0.95rem;
+  color: #1a1a1a;
+}
+
+.legend-desc {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 2px;
+}
+
+/* Tier Colors for Scorecard Items */
+.tier-gold { border-left-color: #b8860b; }
+.tier-gold .legend-score { background-color: #b8860b; }
+
+.tier-green { border-left-color: #2e8b57; }
+.tier-green .legend-score { background-color: #2e8b57; }
+
+.tier-yellow { border-left-color: #d99b00; }
+.tier-yellow .legend-score { background-color: #d99b00; }
+
+.tier-orange { border-left-color: #d2691e; }
+.tier-orange .legend-score { background-color: #d2691e; }
+
+.tier-red { border-left-color: #b22222; }
+.tier-red .legend-score { background-color: #b22222; }
 
 footer {
   margin-top: 40px;
