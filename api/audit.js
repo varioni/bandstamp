@@ -27,18 +27,18 @@ module.exports = async function handler(req, res) {
   }
 
   const systemInstruction = `
-    You are the official diagnostic auditor for BandStamp (bandstamp.com). Your job is to calculate the precise "Lineup Purity Score" for a requested music band based on their original vs. active touring members.
+    You are the official diagnostic auditor for BandStamp (bandstamp.com). Calculate the "Lineup Purity Score" for a requested music band based on their original vs. active touring members.
 
     CRITICAL FACTS & TOUR STATUS:
-    - Always use factual, up-to-date history (e.g., Oasis reunited in 2025/2026 with both Noel and Liam Gallagher and Paul "Bonehead" Arthurs touring together).
+    - Always use factual, up-to-date history (e.g., Oasis reunited in 2025/2026 with Liam Gallagher, Noel Gallagher, and Bonehead on stage).
     - If a band is currently touring or recently reunited, reflect their ACTUAL touring stage roster.
 
     EVALUATION RULES:
-    1. Original Member Baseline: Members credited on the first commercial studio album OR iconic breakthrough lineup.
-    2. Mathematical Base Score: (Current or Last Touring Original Members / Total Original Baseline Members) * 100.
-    3. Frontman Tax: If the iconic lead singer/frontman is replaced or missing, apply an automatic -30% penalty from the base score.
-    4. Last Man Standing Cap: If only ONE original member remains on stage and is NOT the lead singer, cap the maximum final score at 25%.
-    5. Scoring Format: Always return an INTEGER score (0-100), no decimals.
+    1. Original Member Baseline: Members credited on first commercial studio album OR iconic breakthrough lineup.
+    2. Base Score Math: (Current or Last Touring Original Members / Total Original Baseline Members) * 100.
+    3. Frontman Tax: If iconic lead singer/frontman is missing/replaced, apply an automatic -30% penalty.
+    4. Last Man Standing Cap: If only ONE original member remains and is NOT lead singer, cap max score at 25%.
+    5. Format: Return integer score (0-100), no decimals.
     6. Tiers & Badges:
        - 100%: "Tier 1: Unbroken Circle" | badge: "gold"
        - 75%-99%: "Tier 2: Near-Mint Vintage" | badge: "green"
@@ -47,15 +47,14 @@ module.exports = async function handler(req, res) {
        - 0%-24%: "Tier 5: The Ghost Ship (Zombie Franchise)" | badge: "red"
 
     OUTPUT REQUIREMENT:
-    Return ONLY a single valid JSON object with NO surrounding markdown text or code blocks.
-    JSON structure:
+    Return ONLY valid JSON matching this schema:
     {
       "band_name": "Standardized Band Name",
       "currently_touring": true,
       "calculated_score": 60,
       "tier_label": "Tier 3: Co-Founder Equity",
       "badge_type": "yellow",
-      "summary": "Detailed 3-4 sentence explanation. Explicitly list original members, who is currently on stage for the reunion/tour, whether they are active, and the exact step-by-step math for the final score."
+      "summary": "Concise 2-sentence explanation listing original members, active stage members, tour status, and final score reasoning."
     }
   `;
 
@@ -74,7 +73,9 @@ module.exports = async function handler(req, res) {
           { role: "system", content: systemInstruction },
           { role: "user", content: `Audit this band: ${bandName}` }
         ],
-        max_tokens: 350
+        response_format: { type: "json_object" },
+        max_tokens: 800,
+        temperature: 0.2
       })
     });
 
@@ -85,12 +86,12 @@ module.exports = async function handler(req, res) {
 
     const rawData = await response.json();
     let textOutput = rawData.choices[0].message.content.trim();
+
     const jsonMatch = textOutput.match(/\{[\s\S]*\}/);
     if (jsonMatch) textOutput = jsonMatch[0];
 
     const auditData = JSON.parse(textOutput);
-    
-    // Clean integer rounding for scores
+
     if (typeof auditData.calculated_score === 'number') {
       auditData.calculated_score = Math.round(auditData.calculated_score);
     }
