@@ -1,10 +1,22 @@
-export default async function handler(req, res) {
-  // Only allow POST requests
+module.exports = async function handler(req, res) {
+  // Set CORS headers so browser calls are never blocked
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Content-Type'
+  );
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { bandName } = req.body;
+  const { bandName } = req.body || {};
   if (!bandName) {
     return res.status(400).json({ error: 'Band name is required' });
   }
@@ -17,7 +29,7 @@ export default async function handler(req, res) {
     EVALUATION RULES:
     1. Tour Status Check: Check if the band actively toured in the past 12 months or has an upcoming tour.
        - If INACTIVE (not toured in past 12 months), evaluate their LAST KNOWN TOURING LINEUP in past tense, and explicitly state in the summary that the band is not currently on tour.
-    2. Original Member Baseline: Defined as members credited on the first commercial studio album OR iconic breakthrough lineup (e.g., Ringo Starr, Travis Barker, Chad Smith/John Frusciante).
+    2. Original Member Baseline: Defined as members credited on the first commercial studio album OR iconic breakthrough lineup.
     3. Mathematical Base Score: (Current or Last Touring Original Members / Total Original Members) * 100.
     4. Frontman Tax: If the iconic lead singer/frontman is replaced/missing, apply an automatic -30% penalty.
     5. Last Man Standing Cap: If only ONE original member remains and is NOT the lead singer, cap the maximum score at 25%.
@@ -46,7 +58,9 @@ export default async function handler(req, res) {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://bandstamp.com",
+        "X-Title": "BandStamp"
       },
       body: JSON.stringify({
         model: "meta-llama/llama-3.3-70b-instruct",
@@ -59,7 +73,7 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errText = await response.text();
-      return res.status(response.status).json({ error: errText });
+      return res.status(response.status).json({ error: `OpenRouter API Error (${response.status}): ${errText}` });
     }
 
     const rawData = await response.json();
@@ -70,6 +84,6 @@ export default async function handler(req, res) {
     const auditData = JSON.parse(textOutput);
     return res.status(200).json(auditData);
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: `Server Exception: ${err.message}` });
   }
-}
+};
