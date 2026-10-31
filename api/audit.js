@@ -26,38 +26,27 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: 'OPENROUTER_API_KEY environment variable is missing.' });
   }
 
+  // System prompt focuses ONLY on pure historical data retrieval
   const systemInstruction = `
-    You are the official diagnostic auditor for BandStamp (bandstamp.com). Calculate the "Lineup Purity Score" for a requested music band based on their original vs. active/last-known touring members.
+    You are a music historian data extractor for BandStamp (bandstamp.com). Extract accurate facts for the requested music band.
 
-    STEP-BY-STEP AUDIT LOGIC:
-    1. Baseline Lineup: Identify core members credited on the first commercial studio album OR classic breakthrough lineup.
-       (e.g., R.E.M. baseline: Michael Stipe, Peter Buck, Mike Mills, Bill Berry = 4 members).
-    2. Active vs Inactive Band Check:
-       - Active Bands: Evaluate their current/recent touring stage lineup.
-       - Retired/Disbanded Bands (e.g., R.E.M., The Beatles, Led Zeppelin): Evaluate their LAST OFFICIAL TOURING LINEUP prior to breakup/retirement. DO NOT give 0% simply because they are currently retired.
-    3. Match Count: Count how many baseline members played together in the active or last touring lineup.
-       (e.g., R.E.M. last tour: Stipe, Buck, Mills present, Berry absent = 3 of 4 baseline members present).
-    4. Base Score Math: (Present Baseline Members / Total Baseline Members) * 100.
-    5. Frontman Penalty: If the iconic lead vocalist was missing/replaced on that tour, deduct 30% from the base score.
-    6. Last Man Standing Cap: If ONLY ONE original member remained and was NOT the lead singer, cap max score at 25%.
-    7. Rounding: Final score must be an INTEGER (0 to 100).
+    DATA RETRIEVAL RULES:
+    1. baseline_members: List original members credited on debut album OR classic breakthrough lineup.
+    2. touring_members_present: Baseline members active in the current stage lineup (or last official tour if disbanded/retired).
+    3. frontman_name: Primary iconic lead vocalist.
+    4. frontman_present: Set to true if frontman performed in the evaluated touring lineup, false otherwise.
+    5. is_currently_touring: true if active in 2025/2026, false if retired/disbanded.
+    6. tour_context: Short descriptor (e.g. "2025/2026 Reunion Tour" or "1995 Final Tour").
 
-    TIERS & BADGES:
-    - 100%: "Tier 1: Unbroken Circle" | badge: "gold"
-    - 75%-99%: "Tier 2: Near-Mint Vintage" | badge: "green"
-    - 50%-74%: "Tier 3: Co-Founder Equity" | badge: "yellow"
-    - 25%-49%: "Tier 4: Solo Project in Disguise" | badge: "orange"
-    - 0%-24%: "Tier 5: The Ghost Ship (Zombie Franchise)" | badge: "red"
-
-    OUTPUT REQUIREMENT:
-    Return ONLY valid JSON matching this schema:
+    Return ONLY valid JSON:
     {
       "band_name": "Standardized Band Name",
-      "currently_touring": false,
-      "calculated_score": 75,
-      "tier_label": "Tier 2: Near-Mint Vintage",
-      "badge_type": "green",
-      "summary": "Clear 2-3 sentence audit explanation explicitly naming the baseline debut lineup, their last active touring stage roster (noting that the band is currently retired/inactive), and the exact step-by-step math for the final score."
+      "baseline_members": ["Member 1", "Member 2"],
+      "touring_members_present": ["Member 1"],
+      "frontman_name": "Frontman Name",
+      "frontman_present": true,
+      "is_currently_touring": true,
+      "tour_context": "2026 Tour"
     }
   `;
 
@@ -74,11 +63,11 @@ module.exports = async function handler(req, res) {
         model: "openai/gpt-4o-mini",
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Audit this band: ${bandName}` }
+          { role: "user", content: `Extract band facts for: ${bandName}` }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 600,
-        temperature: 0.1
+        max_tokens: 500,
+        temperature: 0.0
       })
     });
 
@@ -89,17 +78,74 @@ module.exports = async function handler(req, res) {
 
     const rawData = await response.json();
     let textOutput = rawData.choices[0].message.content.trim();
-
     const jsonMatch = textOutput.match(/\{[\s\S]*\}/);
     if (jsonMatch) textOutput = jsonMatch[0];
 
-    const auditData = JSON.parse(textOutput);
+    const data = JSON.parse(textOutput);
 
-    if (typeof auditData.calculated_score === 'number') {
-      auditData.calculated_score = Math.round(auditData.calculated_score);
+    // =========================================================
+    // DETERMINISTIC JAVASCRIPT MATH (Eliminates Hallucinations)
+    // =========================================================
+    const baselineList = data.baseline_members || [];
+    const touringList = data.touring_members_present || [];
+    const totalBase = baselineList.length || 1;
+    const presentBase = touringList.length;
+
+    let baseScore = Math.round((presentBase / totalBase) * 100);
+    let finalScore = baseScore;
+    let penaltyNotes = [];
+
+    // 1. Frontman Tax (-30%)
+    if (!data.frontman_present) {
+      finalScore -= 30;
+      penaltyNotes.push("a 30% penalty for missing iconic lead frontman");
     }
 
-    return res.status(200).json(auditData);
+    // 2. Last Man Standing Cap (Max 25%)
+    if (presentBase === 1 && !data.frontman_present) {
+      if (finalScore > 25) {
+        finalScore = 25;
+        penaltyNotes.push("capped at 25% under the Last Man Standing rule");
+      }
+    }
+
+    // Clamp score between 0% and 100%
+    finalScore = Math.max(0, Math.min(100, finalScore));
+
+    // Assign Official Tiers
+    let tier_label = "";
+    let badge_type = "";
+    if (finalScore === 100) {
+      tier_label = "Tier 1: Unbroken Circle"; badge_type = "gold";
+    } else if (finalScore >= 75) {
+      tier_label = "Tier 2: Near-Mint Vintage"; badge_type = "green";
+    } else if (finalScore >= 50) {
+      tier_label = "Tier 3: Co-Founder Equity"; badge_type = "yellow";
+    } else if (finalScore >= 25) {
+      tier_label = "Tier 4: Solo Project in Disguise"; badge_type = "orange";
+    } else {
+      tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; badge_type = "red";
+    }
+
+    // Programmatic Summary Construction
+    const tourStatusText = data.is_currently_touring
+      ? `Evaluating their ${data.tour_context || 'current stage lineup'}`
+      : `Evaluating their ${data.tour_context || 'last official tour'} (currently retired/inactive)`;
+
+    const membersText = presentBase > 0 ? touringList.join(', ') : 'none';
+    const penaltyText = penaltyNotes.length > 0 ? ` Applied ${penaltyNotes.join(" and ")}.` : '';
+
+    const summary = `Baseline lineup (${totalBase} members): ${baselineList.join(', ')}. ${tourStatusText}, ${presentBase} of ${totalBase} original members performed on stage (${membersText}). Base score: (${presentBase}/${totalBase}) * 100 = ${baseScore}%.${penaltyText} Final Purity Score: ${finalScore}%.`;
+
+    return res.status(200).json({
+      band_name: data.band_name,
+      currently_touring: data.is_currently_touring,
+      calculated_score: finalScore,
+      tier_label: tier_label,
+      badge_type: badge_type,
+      summary: summary
+    });
+
   } catch (err) {
     return res.status(500).json({ error: `Server Exception: ${err.message}` });
   }
