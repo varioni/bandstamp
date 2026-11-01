@@ -26,10 +26,9 @@ module.exports = async function handler(req, res) {
   const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  // Standardize Redis Key slug
   const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
 
-  // 1. Check Upstash Redis Cache First
+  // 1. Check Upstash Redis Cache First (<50ms)
   if (KV_URL && KV_TOKEN) {
     try {
       const cacheRes = await fetch(`${KV_URL}/get/${cacheKey}`, {
@@ -43,7 +42,7 @@ module.exports = async function handler(req, res) {
         }
       }
     } catch (e) {
-      console.warn("Upstash cache read error, proceeding to live LLM fetch:", e.message);
+      console.warn("Upstash cache read bypass:", e.message);
     }
   }
 
@@ -52,24 +51,25 @@ module.exports = async function handler(req, res) {
   }
 
   const systemInstruction = `
-    You are the official lead inspector for BandStamp (bandstamp.com). Search the web for official tour dates, member mortality/departures, and active stage status for the requested band.
+    You are the official lead inspector for BandStamp (bandstamp.com). Conduct a live search for current 2025/2026 tour dates, active stage rosters, and member status for the requested band.
 
-    STRICT AUDIT & VERIFICATION RULES:
-    1. ACTIVE TOUR DATE VERIFICATION:
-       - Check if the band has ACTIVE or ANNOUNCED concert tour dates in 2025 or 2026.
-       - If dormant, on hiatus, or inactive for years (e.g., Butthole Surfers), set is_currently_touring to FALSE and touring_members_present to [].
+    STRICT LIVE AUDIT RULES:
+    1. LIVE 2025/2026 TOUR VERIFICATION:
+       - Verify if the band has ACTIVE or ANNOUNCED live tour dates in 2025/2026 under this exact band name.
+       - If dormant, on hiatus, or inactive for years (e.g. Butthole Surfers, R.E.M.), set is_currently_touring to FALSE and touring_members_present to [].
 
-    2. MORTALITY & DEPARTURE MANDATE:
-       - Check if any baseline members are deceased (e.g., Teresa Taylor, Kurt Cobain, Jon Lord). Deceased members CANNOT be listed in touring_members_present!
+    2. DECEASED & DEPARTURE MANDATE:
+       - Deceased members (e.g., Kurt Cobain, Jon Lord, Teresa Taylor, Charlie Watts) CANNOT be listed in touring_members_present!
 
-    3. DEBUT & BREAKTHROUGH BASELINE:
+    3. BASELINE DETERMINATION:
        - Default to core credited debut album members (Rolling Stones = Jagger, Richards, Jones, Wyman, Watts).
-       - Exception for classic defining lineups: Nirvana = Cobain, Novoselic, Grohl; Deep Purple Mark II = Gillan, Blackmore, Glover, Lord, Paice.
+       - Exception for classic defining rosters: Nirvana = Cobain, Novoselic, Grohl; Deep Purple Mark II = Gillan, Blackmore, Glover, Lord, Paice.
+       - Solo mastermind vehicles (QOTSA, Foo Fighters, NIN) baseline as EXACTLY 1 sole founder.
 
-    4. SOLO MASTERMIND EXCEPTION:
-       - Solo auteur projects (Queens of the Stone Age, Foo Fighters, Nine Inch Nails, Tame Impala) baseline as EXACTLY 1 sole founder.
+    4. HARD CROSS-CHECK MANDATE:
+       - Any core member mentioned as deceased, missing, or sitting out in editorial_summary MUST be present in baseline_members and ABSENT from touring_members_present.
 
-    5. EDITORIAL SUMMARY RESTRICTION:
+    5. EDITORIAL SUMMARY:
        - Write a 2-3 sentence audit narrative in the voice of a witty, sardonic music auditor.
        - DO NOT write raw percentage figures or math strings in the summary text.
 
@@ -96,14 +96,13 @@ module.exports = async function handler(req, res) {
         "X-Title": "BandStamp"
       },
       body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
-        plugins: [{ id: "web" }],
+        model: "perplexity/sonar",
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Audit current 2025/2026 live touring status and baseline lineup for: ${bandName}` }
+          { role: "user", content: `Search the web and audit current 2025/2026 live touring status and baseline roster for: ${bandName}` }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 700,
+        max_tokens: 600,
         temperature: 0.0
       })
     });
@@ -120,7 +119,7 @@ module.exports = async function handler(req, res) {
 
     const data = JSON.parse(textOutput);
 
-    // Deterministic Math in JS
+    // Deterministic Math
     const baselineList = data.baseline_members || [];
     let touringList = data.touring_members_present || [];
 
@@ -169,10 +168,9 @@ module.exports = async function handler(req, res) {
       summary: summary
     };
 
-    // 2. Save Result to Upstash Redis with Tiered TTL
+    // Save to Upstash Redis
     if (KV_URL && KV_TOKEN) {
       try {
-        // Active bands TTL = 14 days (1209600s); Defunct bands TTL = 1 year (31536000s)
         const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
         await fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}/EX/${ttlSeconds}`, {
           headers: { Authorization: `Bearer ${KV_TOKEN}` }
