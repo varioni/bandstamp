@@ -22,71 +22,79 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Band name is required' });
   }
 
-  const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-  const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-
-  const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
-
-  // 1. Check Upstash Redis Cache First (<50ms)
-  if (KV_URL && KV_TOKEN) {
-    try {
-      const cacheRes = await fetch(`${KV_URL}/get/${cacheKey}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-      });
-      if (cacheRes.ok) {
-        const cacheData = await cacheRes.json();
-        if (cacheData.result) {
-          const cachedJson = typeof cacheData.result === 'string' ? JSON.parse(cacheData.result) : cacheData.result;
-          return res.status(200).json({ ...cachedJson, cached: true });
-        }
-      }
-    } catch (e) {
-      console.warn("Upstash cache read bypass:", e.message);
-    }
-  }
-
-  if (!OPENROUTER_API_KEY) {
-    return res.status(500).json({ error: 'OPENROUTER_API_KEY environment variable is missing.' });
-  }
-
-  const systemInstruction = `
-    You are the official lead inspector for BandStamp (bandstamp.com). Conduct a live search for current 2025/2026 tour dates, active stage rosters, and member status for the requested band.
-
-    STRICT LIVE AUDIT RULES:
-    1. LIVE 2025/2026 TOUR VERIFICATION:
-       - Verify if the band has ACTIVE or ANNOUNCED live tour dates in 2025/2026 under this exact band name.
-       - If dormant, on hiatus, or inactive for years (e.g. Butthole Surfers, R.E.M.), set is_currently_touring to FALSE and touring_members_present to [].
-
-    2. DECEASED & DEPARTURE MANDATE:
-       - Deceased members (e.g., Kurt Cobain, Jon Lord, Teresa Taylor, Charlie Watts) CANNOT be listed in touring_members_present!
-
-    3. BASELINE DETERMINATION:
-       - Default to core credited debut album members (Rolling Stones = Jagger, Richards, Jones, Wyman, Watts).
-       - Exception for classic defining rosters: Nirvana = Cobain, Novoselic, Grohl; Deep Purple Mark II = Gillan, Blackmore, Glover, Lord, Paice.
-       - Solo mastermind vehicles (QOTSA, Foo Fighters, NIN) baseline as EXACTLY 1 sole founder.
-
-    4. HARD CROSS-CHECK MANDATE:
-       - Any core member mentioned as deceased, missing, or sitting out in editorial_summary MUST be present in baseline_members and ABSENT from touring_members_present.
-
-    5. EDITORIAL SUMMARY:
-       - Write a 2-3 sentence audit narrative in the voice of a witty, sardonic music auditor.
-       - DO NOT write raw percentage figures or math strings in the summary text.
-
-    Return ONLY valid JSON:
-    {
-      "band_name": "Standardized Band Name",
-      "debut_album": "Landmark Era Title",
-      "baseline_members": ["Member 1", "Member 2"],
-      "touring_members_present": [],
-      "frontman_name": "Frontman Name",
-      "frontman_present": false,
-      "is_currently_touring": false,
-      "editorial_summary": "Witty audit blurb here..."
-    }
-  `;
+  let currentStep = "INITIALIZATION";
 
   try {
+    const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+    let KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+    const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    // Clean trailing slashes from KV_URL if present
+    if (KV_URL && KV_URL.endsWith('/')) {
+      KV_URL = KV_URL.slice(0, -1);
+    }
+
+    const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
+
+    // STEP 1: Upstash Cache Read (with 2-second timeout guard)
+    currentStep = "UPSTASH_CACHE_READ";
+    if (KV_URL && KV_TOKEN) {
+      try {
+        const kvController = new AbortController();
+        const kvTimeout = setTimeout(() => kvController.abort(), 2000);
+
+        const cacheRes = await fetch(`${KV_URL}/get/${cacheKey}`, {
+          headers: { Authorization: `Bearer ${KV_TOKEN}` },
+          signal: kvController.signal
+        });
+        clearTimeout(kvTimeout);
+
+        if (cacheRes.ok) {
+          const cacheData = await cacheRes.json();
+          if (cacheData.result) {
+            const cachedJson = typeof cacheData.result === 'string' ? JSON.parse(cacheData.result) : cacheData.result;
+            return res.status(200).json({ ...cachedJson, cached: true, step: "CACHE_HIT" });
+          }
+        }
+      } catch (e) {
+        console.warn(`Upstash read bypassed at ${currentStep}:`, e.message);
+      }
+    }
+
+    // STEP 2: Verify API Key
+    currentStep = "CHECK_OPENROUTER_KEY";
+    if (!OPENROUTER_API_KEY) {
+      return res.status(500).json({ error: 'OPENROUTER_API_KEY environment variable is missing on Vercel.' });
+    }
+
+    const systemInstruction = `
+      You are the official lead inspector for BandStamp (bandstamp.com). Conduct a live search for current 2025/2026 tour dates, active stage rosters, and member status for the requested band.
+
+      STRICT LIVE AUDIT RULES:
+      1. LIVE 2025/2026 TOUR VERIFICATION: Verify active tour dates under exact band name. If dormant/inactive, set is_currently_touring to FALSE and touring_members_present to [].
+      2. DECEASED & DEPARTURE MANDATE: Deceased members CANNOT be listed in touring_members_present!
+      3. BASELINE DETERMINATION: Default to debut album core members. Exception for defining classic rosters (Nirvana = Cobain/Novoselic/Grohl; Deep Purple Mark II = Gillan/Blackmore/Glover/Lord/Paice). Solo auteur projects (QOTSA, Foo Fighters, NIN) baseline as 1 founder.
+      4. HARD CROSS-CHECK MANDATE: Missing members mentioned in summary MUST be in baseline_members and ABSENT from touring_members_present.
+      5. EDITORIAL SUMMARY: 2-3 sentence audit narrative. DO NOT write raw percentage figures or math strings in text.
+
+      Return ONLY valid JSON:
+      {
+        "band_name": "Standardized Band Name",
+        "debut_album": "Landmark Era Title",
+        "baseline_members": ["Member 1", "Member 2"],
+        "touring_members_present": [],
+        "frontman_name": "Frontman Name",
+        "frontman_present": false,
+        "is_currently_touring": false,
+        "editorial_summary": "Witty audit blurb here..."
+      }
+    `;
+
+    // STEP 3: Call OpenRouter (with 6.5-second timeout guard to prevent 10s Vercel kill)
+    currentStep = "OPENROUTER_API_CALL";
+    const aiController = new AbortController();
+    const aiTimeout = setTimeout(() => aiController.abort(), 6500);
+
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -104,14 +112,18 @@ module.exports = async function handler(req, res) {
         response_format: { type: "json_object" },
         max_tokens: 600,
         temperature: 0.0
-      })
+      }),
+      signal: aiController.signal
     });
+    clearTimeout(aiTimeout);
 
     if (!response.ok) {
       const errText = await response.text();
-      return res.status(response.status).json({ error: `OpenRouter Error (${response.status}): ${errText}` });
+      return res.status(response.status).json({ error: `OpenRouter Error (${response.status}): ${errText}`, step: currentStep });
     }
 
+    // STEP 4: Parse LLM Response
+    currentStep = "PARSE_AI_RESPONSE";
     const rawData = await response.json();
     let textOutput = rawData.choices[0].message.content.trim();
     const jsonMatch = textOutput.match(/\{[\s\S]*\}/);
@@ -119,7 +131,8 @@ module.exports = async function handler(req, res) {
 
     const data = JSON.parse(textOutput);
 
-    // Deterministic Math
+    // STEP 5: Compute Deterministic Math
+    currentStep = "COMPUTE_SCORE";
     const baselineList = data.baseline_members || [];
     let touringList = data.touring_members_present || [];
 
@@ -168,21 +181,31 @@ module.exports = async function handler(req, res) {
       summary: summary
     };
 
-    // Save to Upstash Redis
+    // STEP 6: Upstash Cache Write (with 2-second timeout guard)
+    currentStep = "UPSTASH_CACHE_WRITE";
     if (KV_URL && KV_TOKEN) {
       try {
+        const kvWriteController = new AbortController();
+        const kvWriteTimeout = setTimeout(() => kvWriteController.abort(), 2000);
+
         const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
         await fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}/EX/${ttlSeconds}`, {
-          headers: { Authorization: `Bearer ${KV_TOKEN}` }
+          headers: { Authorization: `Bearer ${KV_TOKEN}` },
+          signal: kvWriteController.signal
         });
+        clearTimeout(kvWriteTimeout);
       } catch (e) {
-        console.warn("Upstash cache write error:", e.message);
+        console.warn(`Upstash write error at ${currentStep}:`, e.message);
       }
     }
 
-    return res.status(200).json({ ...resultPayload, cached: false });
+    return res.status(200).json({ ...resultPayload, cached: false, step: "COMPLETE" });
 
   } catch (err) {
-    return res.status(500).json({ error: `Server Exception: ${err.message}` });
+    const isTimeout = err.name === 'AbortError';
+    return res.status(500).json({
+      error: isTimeout ? `Request timed out at step: ${currentStep}` : `Server Exception at step [${currentStep}]: ${err.message}`,
+      failed_step: currentStep
+    });
   }
 };
