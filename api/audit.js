@@ -7,7 +7,6 @@ module.exports = async function handler(req, res) {
     'X-CSRF-Token, X-Requested-With, Accept, Content-Type'
   );
   
-  // Cache audit responses at Vercel's Edge CDN for 12 hours
   res.setHeader('Cache-Control', 's-maxage=43200, stale-while-revalidate=21600');
 
   if (req.method === 'OPTIONS') {
@@ -24,6 +23,29 @@ module.exports = async function handler(req, res) {
   }
 
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+  const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  // Standardize Redis Key slug
+  const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
+
+  // 1. Check Upstash Redis Cache First
+  if (KV_URL && KV_TOKEN) {
+    try {
+      const cacheRes = await fetch(`${KV_URL}/get/${cacheKey}`, {
+        headers: { Authorization: `Bearer ${KV_TOKEN}` }
+      });
+      if (cacheRes.ok) {
+        const cacheData = await cacheRes.json();
+        if (cacheData.result) {
+          const cachedJson = typeof cacheData.result === 'string' ? JSON.parse(cacheData.result) : cacheData.result;
+          return res.status(200).json({ ...cachedJson, cached: true });
+        }
+      }
+    } catch (e) {
+      console.warn("Upstash cache read error, proceeding to live LLM fetch:", e.message);
+    }
+  }
 
   if (!OPENROUTER_API_KEY) {
     return res.status(500).json({ error: 'OPENROUTER_API_KEY environment variable is missing.' });
@@ -33,24 +55,22 @@ module.exports = async function handler(req, res) {
     You are the official lead inspector for BandStamp (bandstamp.com). Search the web for official tour dates, member mortality/departures, and active stage status for the requested band.
 
     STRICT AUDIT & VERIFICATION RULES:
-    1. ACTIVE TOUR DATE VERIFICATION (CRITICAL):
+    1. ACTIVE TOUR DATE VERIFICATION:
        - Check if the band has ACTIVE or ANNOUNCED concert tour dates in 2025 or 2026.
-       - If a band is dormant, on indefinite hiatus, or has not performed live shows in several years (e.g., Butthole Surfers, who have been inactive since the 2010s), you MUST set is_currently_touring to FALSE and touring_members_present to [].
-       - DO NOT assume a band is touring in 2026 just because they never formally broke up!
+       - If dormant, on hiatus, or inactive for years (e.g., Butthole Surfers), set is_currently_touring to FALSE and touring_members_present to [].
 
     2. MORTALITY & DEPARTURE MANDATE:
-       - Check if any baseline members are deceased (e.g., Teresa Taylor of Butthole Surfers died in 2023; Kurt Cobain died in 1994; Jon Lord died in 2012). Deceased members CANNOT be listed in touring_members_present!
+       - Check if any baseline members are deceased (e.g., Teresa Taylor, Kurt Cobain, Jon Lord). Deceased members CANNOT be listed in touring_members_present!
 
     3. DEBUT & BREAKTHROUGH BASELINE:
-       - Default to core credited debut album members (e.g., Rolling Stones = Jagger, Richards, Jones, Wyman, Watts).
-       - Exception for classic defining lineups: Nirvana = Cobain, Novoselic, Grohl; Deep Purple Mark II = Gillan, Blackmore, Glover, Lord, Paice; Butthole Surfers classic = Haynes, Leary, Coffey, Pinkus, Taylor.
+       - Default to core credited debut album members (Rolling Stones = Jagger, Richards, Jones, Wyman, Watts).
+       - Exception for classic defining lineups: Nirvana = Cobain, Novoselic, Grohl; Deep Purple Mark II = Gillan, Blackmore, Glover, Lord, Paice.
 
     4. SOLO MASTERMIND EXCEPTION:
        - Solo auteur projects (Queens of the Stone Age, Foo Fighters, Nine Inch Nails, Tame Impala) baseline as EXACTLY 1 sole founder.
 
     5. EDITORIAL SUMMARY RESTRICTION:
        - Write a 2-3 sentence audit narrative in the voice of a witty, sardonic music auditor.
-       - Explicitly mention if the band is dormant, disbanded, or missing core members.
        - DO NOT write raw percentage figures or math strings in the summary text.
 
     Return ONLY valid JSON:
@@ -140,14 +160,29 @@ module.exports = async function handler(req, res) {
 
     const summary = data.editorial_summary || `Auditing ${data.band_name}: ${presentBase} of ${totalBase} baseline members performed on stage.`;
 
-    return res.status(200).json({
+    const resultPayload = {
       band_name: data.band_name,
       currently_touring: data.is_currently_touring,
       calculated_score: finalScore,
       tier_label: tier_label,
       badge_type: badge_type,
       summary: summary
-    });
+    };
+
+    // 2. Save Result to Upstash Redis with Tiered TTL
+    if (KV_URL && KV_TOKEN) {
+      try {
+        // Active bands TTL = 14 days (1209600s); Defunct bands TTL = 1 year (31536000s)
+        const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
+        await fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}/EX/${ttlSeconds}`, {
+          headers: { Authorization: `Bearer ${KV_TOKEN}` }
+        });
+      } catch (e) {
+        console.warn("Upstash cache write error:", e.message);
+      }
+    }
+
+    return res.status(200).json({ ...resultPayload, cached: false });
 
   } catch (err) {
     return res.status(500).json({ error: `Server Exception: ${err.message}` });
