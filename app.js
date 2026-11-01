@@ -1,170 +1,117 @@
+// BandStamp - Main Application Controller
 document.addEventListener('DOMContentLoaded', () => {
-  const stampBtn = document.getElementById('stamp-btn');
-  const bandInput = document.getElementById('band-input');
-  const loadingDiv = document.getElementById('loading');
-  const resultCard = document.getElementById('result-card');
+  const searchForm = document.getElementById('search-form');
+  const artistInput = document.getElementById('artist-input');
+  const resultsContainer = document.getElementById('results-container');
+  const loadingSpinner = document.getElementById('loading-spinner');
 
-  const bandPhoto = document.getElementById('band-photo');
-  const imageWrapper = document.querySelector('.image-wrapper');
-  const stampOverlay = document.getElementById('stamp-overlay');
-  const bandNameHeading = document.getElementById('band-name-heading');
-  const tierBadge = document.getElementById('tier-badge');
-  const scoreValue = document.getElementById('score-value');
-  const auditSummary = document.getElementById('audit-summary');
+  let currentAbortController = null;
+  let isProcessing = false;
 
-  const challengeToggleBtn = document.getElementById('challenge-toggle-btn');
-  const challengeBox = document.getElementById('challenge-box');
-  const challengeInput = document.getElementById('challenge-input');
-  const submitChallengeBtn = document.getElementById('submit-challenge-btn');
+  if (!searchForm || !artistInput) return;
 
-  let currentBandName = '';
+  searchForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const query = artistInput.value.trim();
+    if (!query || isProcessing) return;
 
-  function updateLoadingText(msg) {
-    if (loadingDiv) {
-      const p = loadingDiv.querySelector('p') || loadingDiv;
-      p.textContent = msg;
-    }
-  }
-
-  async function fetchWikiImage(queryName) {
-    const clean = queryName.trim();
-    const candidates = [];
-
-    if (clean.toLowerCase().includes('(band)') || clean.toLowerCase().includes('(musical group)')) {
-      candidates.push(clean);
-    } else {
-      candidates.push(`${clean} (band)`);
-      candidates.push(clean);
-      candidates.push(`${clean} (musical group)`);
-    }
-
-    for (const title of candidates) {
-      try {
-        const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.type === 'disambiguation') continue;
-          
-          const imgSrc = data.thumbnail?.source || data.originalimage?.source;
-          if (imgSrc) return imgSrc;
-        }
-      } catch (e) {}
-    }
-    return null;
-  }
-
-  async function performAudit() {
-    const query = bandInput.value.trim();
-    if (!query) return;
-
-    currentBandName = query;
-    updateLoadingText(`Auditing lineup for ${query}...`);
-    loadingDiv.classList.remove('hidden');
-    resultCard.classList.add('hidden');
-    challengeBox.classList.add('hidden');
-    stampOverlay.className = 'stamp';
-    if (imageWrapper) imageWrapper.style.display = 'block';
-
-    try {
-      const res = await fetch('/api/audit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bandName: query })
-      });
-
-      const textResponse = await res.text();
-      let data;
-
-      try {
-        data = JSON.parse(textResponse);
-      } catch (jsonErr) {
-        throw new Error(`Server returned status ${res.status}: ${textResponse.slice(0, 120)}`);
-      }
-
-      if (!res.ok) {
-        throw new Error(data.error || `Server Error ${res.status}`);
-      }
-
-      await renderCard(data);
-
-    } catch (err) {
-      alert(`Audit Error: ${err.message}`);
-    } finally {
-      loadingDiv.classList.add('hidden');
-    }
-  }
-
-  async function submitChallenge() {
-    const critique = challengeInput.value.trim();
-    if (!critique || !currentBandName) return;
-
-    updateLoadingText(`Re-auditing ${currentBandName}...`);
-    loadingDiv.classList.remove('hidden');
-    resultCard.classList.add('hidden');
-
-    try {
-      const res = await fetch('/api/challenge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bandName: currentBandName, critique: critique })
-      });
-
-      const textResponse = await res.text();
-      let data;
-
-      try {
-        data = JSON.parse(textResponse);
-      } catch (jsonErr) {
-        throw new Error(`Server returned status ${res.status}: ${textResponse.slice(0, 120)}`);
-      }
-
-      if (!res.ok) {
-        throw new Error(data.error || `Server Error ${res.status}`);
-      }
-
-      challengeInput.value = '';
-      challengeBox.classList.add('hidden');
-      await renderCard(data);
-
-    } catch (err) {
-      resultCard.classList.remove('hidden');
-      alert(`Re-Audit Error: ${err.message}`);
-    } finally {
-      loadingDiv.classList.add('hidden');
-    }
-  }
-
-  async function renderCard(data) {
-    currentBandName = data.band_name;
-    const imgSrc = await fetchWikiImage(data.band_name);
-
-    if (imgSrc) {
-      bandPhoto.src = imgSrc;
-      bandPhoto.onerror = () => { if (imageWrapper) imageWrapper.style.display = 'none'; };
-    } else {
-      if (imageWrapper) imageWrapper.style.display = 'none';
-    }
-
-    bandNameHeading.textContent = data.band_name;
-    scoreValue.textContent = `${data.calculated_score}%`;
-    tierBadge.textContent = data.tier_label;
-    tierBadge.className = 'badge';
-    auditSummary.textContent = data.summary;
-
-    stampOverlay.textContent = `${data.calculated_score}% PURITY`;
-    stampOverlay.classList.add(data.badge_type);
-
-    resultCard.classList.remove('hidden');
-  }
-
-  stampBtn.addEventListener('click', performAudit);
-  bandInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') performAudit();
+    await performAudit(query);
   });
 
-  challengeToggleBtn.addEventListener('click', () => {
-    challengeBox.classList.toggle('hidden');
-  });
+  async function performAudit(artistName) {
+    // Abort previous inflight request to prevent stacked async loops
+    if (currentAbortController) {
+      currentAbortController.abort();
+    }
+    currentAbortController = new AbortController();
 
-  submitChallengeBtn.addEventListener('click', submitChallenge);
+    isProcessing = true;
+    toggleLoading(true);
+    clearResults();
+
+    try {
+      const response = await fetch(`/api/audit?artist=${encodeURIComponent(artistName)}`, {
+        signal: currentAbortController.signal,
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server error (${response.status})`);
+      }
+
+      const data = await response.json();
+      renderAuditResult(data);
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+      renderError(error.message || 'An error occurred while analyzing the band lineup.');
+    } finally {
+      isProcessing = false;
+      toggleLoading(false);
+      currentAbortController = null;
+    }
+  }
+
+  function toggleLoading(isLoading) {
+    if (loadingSpinner) {
+      loadingSpinner.style.display = isLoading ? 'block' : 'none';
+    }
+  }
+
+  function clearResults() {
+    if (resultsContainer) {
+      resultsContainer.innerHTML = '';
+    }
+  }
+
+  function renderAuditResult(data) {
+    if (!resultsContainer) return;
+
+    const ratio = Number(data.originalRatio || 0);
+    const stampClass = ratio >= 0.75 ? 'stamp-gold' : ratio >= 0.5 ? 'stamp-silver' : 'stamp-warning';
+    const stampLabel = ratio >= 0.75 ? 'AUTHENTIC LINEUP' : ratio >= 0.5 ? 'PARTIAL ORIGINAL' : 'TRIBUTE / RECONSTITUTED';
+
+    resultsContainer.innerHTML = `
+      <div class="card">
+        <h2>${escapeHtml(data.artist || 'Unknown Artist')}</h2>
+        <div class="stamp-badge ${stampClass}">
+          <span>${stampLabel}</span>
+          <strong>${Math.round(ratio * 100)}% Original Members</strong>
+        </div>
+        <p class="summary">${escapeHtml(data.summary || 'Lineup evaluation complete.')}</p>
+        <div class="lineup-grid">
+          <div class="column">
+            <h3>Classic / Original Era</h3>
+            <ul>
+              ${(data.originalMembers || []).map(member => `<li>${escapeHtml(member)}</li>`).join('') || '<li>Data unavailable</li>'}
+            </ul>
+          </div>
+          <div class="column">
+            <h3>Current Touring Roster</h3>
+            <ul>
+              ${(data.touringMembers || []).map(member => `<li>${escapeHtml(member)}</li>`).join('') || '<li>Data unavailable</li>'}
+            </ul>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderError(message) {
+    if (!resultsContainer) return;
+    resultsContainer.innerHTML = `
+      <div class="card error-card">
+        <p><strong>Error:</strong> ${escapeHtml(message)}</p>
+      </div>
+    `;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 });
