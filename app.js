@@ -12,6 +12,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const scoreValue = document.getElementById('score-value');
   const auditSummary = document.getElementById('audit-summary');
 
+  async function fetchWikiImage(queryName) {
+    try {
+      // 1. Try direct search query
+      let res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(queryName)}`);
+      let data = res.ok ? await res.json() : null;
+      let imgSrc = data?.thumbnail?.source || data?.originalimage?.source;
+
+      // 2. Fallback to queryName + " (band)" if first try has no image or hits disambiguation
+      if (!imgSrc && !queryName.toLowerCase().includes('(band)')) {
+        const fallbackRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(queryName + ' (band)')}`);
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json();
+          imgSrc = fallbackData?.thumbnail?.source || fallbackData?.originalimage?.source;
+        }
+      }
+
+      return imgSrc || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   async function performAudit() {
     const query = bandInput.value.trim();
     if (!query) return;
@@ -37,22 +59,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const data = await res.json();
 
-      // 2. Fetch Photo via Wikipedia REST API with Auto-Hide Error Protection
-      try {
-        const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(data.band_name || query)}`);
-        if (wikiRes.ok) {
-          const wikiData = await wikiRes.json();
-          const imgSrc = wikiData.thumbnail?.source || wikiData.originalimage?.source;
-          if (imgSrc) {
-            bandPhoto.src = imgSrc;
-            bandPhoto.onerror = () => { if (imageWrapper) imageWrapper.style.display = 'none'; };
-          } else {
-            if (imageWrapper) imageWrapper.style.display = 'none';
-          }
-        } else {
-          if (imageWrapper) imageWrapper.style.display = 'none';
-        }
-      } catch (imgErr) {
+      // 2. Fetch Photo via Wikipedia REST API with Smart Fallback
+      const imgSrc = await fetchWikiImage(data.band_name || query);
+
+      if (imgSrc) {
+        bandPhoto.src = imgSrc;
+        bandPhoto.onerror = () => { if (imageWrapper) imageWrapper.style.display = 'none'; };
+      } else {
         if (imageWrapper) imageWrapper.style.display = 'none';
       }
 
