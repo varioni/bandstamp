@@ -35,31 +35,34 @@ module.exports = async function handler(req, res) {
     CRITICAL AUDIT & BASELINE RULES:
     1. DEFINITIVE CORE BASELINE:
        - Baseline members must reflect the core studio album lineup OR the iconic classic breakthrough roster that defined the band's legacy.
-       - For Nirvana, the classic baseline is Kurt Cobain, Krist Novoselic, and Dave Grohl.
-       - For The Rolling Stones, debut baseline = Jagger, Richards, Jones, Wyman, Watts (Ronnie Wood joined in 1975).
+       - Deep Purple classic Mark II baseline MUST be 5 members: Ian Gillan, Ritchie Blackmore, Roger Glover, Jon Lord, Ian Paice. (Active on stage today = Gillan, Glover, Paice = 3 of 5).
+       - Nirvana classic baseline = Kurt Cobain, Krist Novoselic, Dave Grohl.
+       - The Rolling Stones debut baseline = Mick Jagger, Keith Richards, Brian Jones, Bill Wyman, Charlie Watts.
 
-    2. DISBANDED BANDS & MONIKER AUDIT:
+    2. HARD CROSS-CHECK MANDATE:
+       - ANY baseline or core member you mention as deceased, departed, or sitting out in your editorial_summary (e.g. Jon Lord or Ritchie Blackmore) MUST BE INCLUDED in baseline_members and ABSENT from touring_members_present!
+       - Never omit a missing core member from baseline_members!
+
+    3. DISBANDED BANDS & MONIKER AUDIT:
        - A band is ONLY "currently touring" if baseline members are actively performing TOGETHER UNDER THAT EXACT BAND NAME.
-       - If a band ended due to death or breakup (e.g., Nirvana dissolved in 1994 following Kurt Cobain's death; The Beatles broke up in 1970; Led Zeppelin broke up in 1980), set is_currently_touring to FALSE and touring_members_present to [].
-       - DO NOT claim surviving members are "still active in the band" if they are merely touring in side projects, solo acts, or other groups (e.g., Krist Novoselic or Dave Grohl playing in Foo Fighters / 3rd Secret DOES NOT mean Nirvana is touring!).
+       - If a band ended due to death or breakup (e.g., Nirvana, The Beatles, Led Zeppelin), set is_currently_touring to FALSE and touring_members_present to [].
 
-    3. SOLO MASTERMIND EXCEPTION:
+    4. SOLO MASTERMIND EXCEPTION:
        - If a project is a solo auteur vehicle (e.g., Queens of the Stone Age, Foo Fighters, Nine Inch Nails, Tame Impala), baseline them as EXACTLY 1 sole founder.
 
-    4. EDITORIAL SUMMARY:
+    5. EDITORIAL SUMMARY:
        - Write a 2-3 sentence audit narrative in the voice of a witty music auditor.
-       - Explicitly state if the band is officially defunct/disbanded.
        - DO NOT write raw percentage figures inside the text summary.
 
     Return ONLY valid JSON:
     {
       "band_name": "Standardized Band Name",
       "debut_album": "Landmark Album / Era",
-      "baseline_members": ["Member 1", "Member 2", "Member 3"],
-      "touring_members_present": [],
+      "baseline_members": ["Member 1", "Member 2", "Member 3", "Member 4", "Member 5"],
+      "touring_members_present": ["Member 1", "Member 3", "Member 5"],
       "frontman_name": "Frontman Name",
-      "frontman_present": false,
-      "is_currently_touring": false,
+      "frontman_present": true,
+      "is_currently_touring": true,
       "editorial_summary": "Witty blurb here..."
     }
   `;
