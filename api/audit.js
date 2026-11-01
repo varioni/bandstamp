@@ -20,19 +20,16 @@ module.exports = async function handler(req, res) {
   let KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  if (KV_URL && !KV_URL.startsWith('http')) {
-    KV_URL = null;
-  }
-  if (KV_URL && KV_URL.endsWith('/')) {
-    KV_URL = KV_URL.slice(0, -1);
-  }
+  if (KV_URL && !KV_URL.startsWith('http')) KV_URL = null;
+  if (KV_URL && KV_URL.endsWith('/')) KV_URL = KV_URL.slice(0, -1);
 
   const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
 
+  // 1. Fast Redis Cache Read
   if (KV_URL && KV_TOKEN) {
     try {
       const kvController = new AbortController();
-      const kvTimer = setTimeout(() => kvController.abort(), 500);
+      const kvTimer = setTimeout(() => kvController.abort(), 600);
 
       const cacheRes = await fetch(`${KV_URL}/get/${cacheKey}`, {
         headers: { Authorization: `Bearer ${KV_TOKEN}` },
@@ -60,9 +57,9 @@ module.exports = async function handler(req, res) {
     You are BandStamp lead inspector. Search the web for active 2025/2026 tour dates and touring lineup for: ${bandName}.
 
     RULES:
-    1. Active Tour Verification: Check if band has active 2025/2026 tour dates under this exact name. If defunct/disbanded/dormant (Nirvana, R.E.M., Butthole Surfers), set is_currently_touring to FALSE and touring_members_present to [].
-    2. Mortality Mandate: Deceased members (Kurt Cobain, Jon Lord, Teresa Taylor) CANNOT be in touring_members_present!
-    3. Baseline: Debut album core members. Exception for classic defining rosters (Nirvana = Cobain/Novoselic/Grohl; Deep Purple Mark II = Gillan/Blackmore/Glover/Lord/Paice). Solo auteur projects (QOTSA, Foo Fighters, NIN) baseline as 1 founder.
+    1. Active Tour Verification: Check if band has active 2025/2026 tour dates under this exact name. If defunct/disbanded/dormant, set is_currently_touring to FALSE and touring_members_present to [].
+    2. Mortality Mandate: Deceased members CANNOT be in touring_members_present!
+    3. Baseline: Debut album core members. Exception for classic defining rosters. Solo auteur projects baseline as 1 founder.
     4. Hard Cross-Check: Missing/deceased members in narrative MUST be in baseline_members and ABSENT from touring_members_present.
     5. DO NOT write raw percentage figures or math inside editorial_summary text.
 
@@ -79,10 +76,10 @@ module.exports = async function handler(req, res) {
     }
   `;
 
-  let aiTimer; // Scope timer outside try block so we can clear it if it fails
+  let aiTimer;
   try {
     const aiController = new AbortController();
-    aiTimer = setTimeout(() => aiController.abort(), 7500);
+    aiTimer = setTimeout(() => aiController.abort(), 8500);
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -108,7 +105,7 @@ module.exports = async function handler(req, res) {
 
     if (!response.ok) {
       const errText = await response.text();
-      return res.status(response.status).json({ error: `OpenRouter Error (${response.status}): ${errText}` });
+      return res.status(response.status).json({ error: `OpenRouter Error: ${errText}` });
     }
 
     const rawData = await response.json();
@@ -156,6 +153,7 @@ module.exports = async function handler(req, res) {
       summary: summary
     };
 
+    // Non-blocking Redis write
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
       fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
@@ -166,7 +164,10 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ...resultPayload, cached: false });
 
   } catch (err) {
-    if (aiTimer) clearTimeout(aiTimer); // Fix: Prevent memory lockup if the fetch fails
+    if (aiTimer) clearTimeout(aiTimer);
+    if (err.name === 'AbortError') {
+      return res.status(504).json({ error: "Audit request timed out." });
+    }
     return res.status(500).json({ error: `Server Exception: ${err.message}` });
   }
 };
