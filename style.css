@@ -318,3 +318,25 @@ footer a:hover {
   text-decoration: underline;
   color: #a00000;
 }
+
+/* Score Calculation Guide Link */
+.guide-link-container {
+  text-align: center;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+.guide-link {
+  font-family: 'Special Elite', cursive;
+  font-size: 0.95rem;
+  color: #8b0000;
+  text-decoration: none;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  transition: all 0.15s ease;
+}
+
+.guide-link:hover {
+  text-decoration: underline;
+  color: #a00000;
+}
