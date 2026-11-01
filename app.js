@@ -12,6 +12,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const scoreValue = document.getElementById('score-value');
   const auditSummary = document.getElementById('audit-summary');
 
+  const challengeToggleBtn = document.getElementById('challenge-toggle-btn');
+  const challengeBox = document.getElementById('challenge-box');
+  const challengeInput = document.getElementById('challenge-input');
+  const submitChallengeBtn = document.getElementById('submit-challenge-btn');
+
+  let currentBandName = '';
+
   async function fetchWikiImage(queryName) {
     const clean = queryName.trim();
     const candidates = [];
@@ -19,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clean.toLowerCase().includes('(band)') || clean.toLowerCase().includes('(musical group)')) {
       candidates.push(clean);
     } else {
-      // Prioritize (band) first to prevent hitting clowns, movies, or monarchs!
       candidates.push(`${clean} (band)`);
       candidates.push(clean);
       candidates.push(`${clean} (musical group)`);
@@ -35,9 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const imgSrc = data.thumbnail?.source || data.originalimage?.source;
           if (imgSrc) return imgSrc;
         }
-      } catch (e) {
-        // Try next candidate
-      }
+      } catch (e) {}
     }
     return null;
   }
@@ -46,14 +50,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const query = bandInput.value.trim();
     if (!query) return;
 
-    // Reset UI state
+    currentBandName = query;
     loadingDiv.classList.remove('hidden');
     resultCard.classList.add('hidden');
+    challengeBox.classList.add('hidden');
     stampOverlay.className = 'stamp';
     if (imageWrapper) imageWrapper.style.display = 'block';
 
     try {
-      // 1. Audit Request to Backend Endpoint
       const res = await fetch('/api/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -66,31 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const data = await res.json();
-
-      // 2. Fetch Photo via Wikipedia REST API with Smart (band) Priority
-      const imgSrc = await fetchWikiImage(data.band_name || query);
-
-      if (imgSrc) {
-        bandPhoto.src = imgSrc;
-        bandPhoto.onerror = () => { if (imageWrapper) imageWrapper.style.display = 'none'; };
-      } else {
-        if (imageWrapper) imageWrapper.style.display = 'none';
-      }
-
-      // 3. Populate Card UI
-      bandNameHeading.textContent = data.band_name;
-      scoreValue.textContent = `${data.calculated_score}%`;
-      tierBadge.textContent = data.tier_label;
-      tierBadge.className = 'badge';
-      auditSummary.textContent = data.summary;
-
-      // Stamp Overlay
-      stampOverlay.textContent = `${data.calculated_score}% PURITY`;
-      stampOverlay.classList.add(data.badge_type);
-
-      // Reveal Result Card
-      loadingDiv.classList.add('hidden');
-      resultCard.classList.remove('hidden');
+      renderCard(data);
 
     } catch (err) {
       loadingDiv.classList.add('hidden');
@@ -98,8 +78,69 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function submitChallenge() {
+    const critique = challengeInput.value.trim();
+    if (!critique || !currentBandName) return;
+
+    loadingDiv.classList.remove('hidden');
+    resultCard.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/challenge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bandName: currentBandName, critique: critique })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Re-audit request failed');
+      }
+
+      const data = await res.json();
+      challengeInput.value = '';
+      challengeBox.classList.add('hidden');
+      renderCard(data);
+
+    } catch (err) {
+      loadingDiv.classList.add('hidden');
+      resultCard.classList.remove('hidden');
+      alert(`Re-Audit Error: ${err.message}`);
+    }
+  }
+
+  async function renderCard(data) {
+    currentBandName = data.band_name;
+    const imgSrc = await fetchWikiImage(data.band_name);
+
+    if (imgSrc) {
+      bandPhoto.src = imgSrc;
+      bandPhoto.onerror = () => { if (imageWrapper) imageWrapper.style.display = 'none'; };
+    } else {
+      if (imageWrapper) imageWrapper.style.display = 'none';
+    }
+
+    bandNameHeading.textContent = data.band_name;
+    scoreValue.textContent = `${data.calculated_score}%`;
+    tierBadge.textContent = data.tier_label;
+    tierBadge.className = 'badge';
+    auditSummary.textContent = data.summary;
+
+    stampOverlay.textContent = `${data.calculated_score}% PURITY`;
+    stampOverlay.classList.add(data.badge_type);
+
+    loadingDiv.classList.add('hidden');
+    resultCard.classList.remove('hidden');
+  }
+
   stampBtn.addEventListener('click', performAudit);
   bandInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') performAudit();
   });
+
+  challengeToggleBtn.addEventListener('click', () => {
+    challengeBox.classList.toggle('hidden');
+  });
+
+  submitChallengeBtn.addEventListener('click', submitChallenge);
 });
