@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!query) return;
 
     currentBandName = query;
-    updateLoadingText(`Connecting to server for ${query}...`);
+    updateLoadingText(`Auditing lineup for ${query}...`);
     loadingDiv.classList.remove('hidden');
     resultCard.classList.add('hidden');
     challengeBox.classList.add('hidden');
@@ -66,33 +66,31 @@ document.addEventListener('DOMContentLoaded', () => {
     if (imageWrapper) imageWrapper.style.display = 'block';
 
     try {
-      updateLoadingText(`Auditing live roster for ${query}...`);
       const res = await fetch('/api/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bandName: query })
       });
 
-      let data;
       const textResponse = await res.text();
+      let data;
 
       try {
         data = JSON.parse(textResponse);
       } catch (jsonErr) {
-        throw new Error(`Server returned non-JSON response (HTTP ${res.status}): ${textResponse.slice(0, 150)}...`);
+        throw new Error(`Server returned status ${res.status}: ${textResponse.slice(0, 120)}`);
       }
 
       if (!res.ok) {
-        const stepInfo = data.failed_step ? ` [Failed Step: ${data.failed_step}]` : '';
-        throw new Error((data.error || `Server Error ${res.status}`) + stepInfo);
+        throw new Error(data.error || `Server Error ${res.status}`);
       }
 
-      updateLoadingText(`Fetching band image...`);
       await renderCard(data);
 
     } catch (err) {
+      alert(`Audit Error: ${err.message}`);
+    } finally {
       loadingDiv.classList.add('hidden');
-      alert(`Audit Diagnostics Alert:\n\n${err.message}`);
     }
   }
 
@@ -100,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const critique = challengeInput.value.trim();
     if (!critique || !currentBandName) return;
 
-    updateLoadingText(`Re-auditing ${currentBandName} with critique...`);
+    updateLoadingText(`Re-auditing ${currentBandName}...`);
     loadingDiv.classList.remove('hidden');
     resultCard.classList.add('hidden');
 
@@ -111,13 +109,13 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ bandName: currentBandName, critique: critique })
       });
 
-      let data;
       const textResponse = await res.text();
+      let data;
 
       try {
         data = JSON.parse(textResponse);
       } catch (jsonErr) {
-        throw new Error(`Server returned non-JSON response (HTTP ${res.status}): ${textResponse.slice(0, 150)}...`);
+        throw new Error(`Server returned status ${res.status}: ${textResponse.slice(0, 120)}`);
       }
 
       if (!res.ok) {
@@ -129,9 +127,10 @@ document.addEventListener('DOMContentLoaded', () => {
       await renderCard(data);
 
     } catch (err) {
-      loadingDiv.classList.add('hidden');
       resultCard.classList.remove('hidden');
       alert(`Re-Audit Error: ${err.message}`);
+    } finally {
+      loadingDiv.classList.add('hidden');
     }
   }
 
@@ -155,7 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
     stampOverlay.textContent = `${data.calculated_score}% PURITY`;
     stampOverlay.classList.add(data.badge_type);
 
-    loadingDiv.classList.add('hidden');
     resultCard.classList.remove('hidden');
   }
 
