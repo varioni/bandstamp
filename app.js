@@ -18,10 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitChallengeBtn = document.getElementById('submit-challenge-btn');
 
   let currentBandName = '';
-  
-  // FIX: Execution locks to prevent browser freeze
-  let isProcessing = false; 
-  let activeRequestController = null; 
+  let isProcessing = false;
+  let activeRequestController = null;
 
   function updateLoadingText(msg) {
     if (loadingDiv) {
@@ -32,15 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function fetchWikiImage(queryName) {
     const clean = queryName.trim();
-    const candidates = [];
-
-    if (clean.toLowerCase().includes('(band)') || clean.toLowerCase().includes('(musical group)')) {
-      candidates.push(clean);
-    } else {
-      candidates.push(`${clean} (band)`);
-      candidates.push(clean);
-      candidates.push(`${clean} (musical group)`);
-    }
+    const candidates = [
+      clean,
+      `${clean} (band)`,
+      `${clean} (musical group)`
+    ];
 
     for (const title of candidates) {
       try {
@@ -57,11 +51,12 @@ document.addEventListener('DOMContentLoaded', () => {
     return null;
   }
 
-  async function performAudit() {
-    const query = bandInput.value.trim();
-    if (!query || isProcessing) return; // Prevent stacked executions
+  async function performAudit(e) {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
-    // Cancel any inflight API requests to free up the browser thread
+    const query = bandInput.value.trim();
+    if (!query || isProcessing) return;
+
     if (activeRequestController) activeRequestController.abort();
     activeRequestController = new AbortController();
     
@@ -79,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bandName: query }),
-        signal: activeRequestController.signal // Bind the abort controller
+        signal: activeRequestController.signal
       });
 
       const textResponse = await res.text();
@@ -88,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         data = JSON.parse(textResponse);
       } catch (jsonErr) {
-        throw new Error(`Server returned status ${res.status}: ${textResponse.slice(0, 120)}`);
+        throw new Error(`Server returned invalid format (${res.status})`);
       }
 
       if (!res.ok) {
@@ -98,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await renderCard(data);
 
     } catch (err) {
-      if (err.name === 'AbortError') return; // Ignore errors from deliberately cancelled requests
+      if (err.name === 'AbortError') return;
       alert(`Audit Error: ${err.message}`);
     } finally {
       isProcessing = false;
@@ -114,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     activeRequestController = new AbortController();
 
     isProcessing = true;
-    updateLoadingText(`Re-auditing ${currentBandName}...`);
+    updateLoadingText(`Re-auditing ${currentBandName} with your challenge...`);
     loadingDiv.classList.remove('hidden');
     resultCard.classList.add('hidden');
 
@@ -132,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         data = JSON.parse(textResponse);
       } catch (jsonErr) {
-        throw new Error(`Server returned status ${res.status}: ${textResponse.slice(0, 120)}`);
+        throw new Error(`Server returned invalid format (${res.status})`);
       }
 
       if (!res.ok) {
@@ -176,17 +171,23 @@ document.addEventListener('DOMContentLoaded', () => {
     resultCard.classList.remove('hidden');
   }
 
-  stampBtn.addEventListener('click', performAudit);
-  bandInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault(); // Fix: Prevent accidental browser form-submission loop
-      performAudit();
-    }
-  });
+  if (stampBtn) {
+    stampBtn.addEventListener('click', performAudit);
+  }
+  
+  if (bandInput) {
+    bandInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') performAudit(e);
+    });
+  }
 
-  challengeToggleBtn.addEventListener('click', () => {
-    challengeBox.classList.toggle('hidden');
-  });
+  if (challengeToggleBtn) {
+    challengeToggleBtn.addEventListener('click', () => {
+      challengeBox.classList.toggle('hidden');
+    });
+  }
 
-  submitChallengeBtn.addEventListener('click', submitChallenge);
+  if (submitChallengeBtn) {
+    submitChallengeBtn.addEventListener('click', submitChallenge);
+  }
 });
