@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function performAudit(e) {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    if (!bandInput) return;
 
     const query = bandInput.value.trim();
     if (!query || isProcessing) return;
@@ -63,10 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
     isProcessing = true;
     currentBandName = query;
     updateLoadingText(`Auditing lineup for ${query}...`);
-    loadingDiv.classList.remove('hidden');
-    resultCard.classList.add('hidden');
-    challengeBox.classList.add('hidden');
-    stampOverlay.className = 'stamp';
+    
+    loadingDiv?.classList.remove('hidden');
+    resultCard?.classList.add('hidden');
+    challengeBox?.classList.add('hidden');
+    if (stampOverlay) stampOverlay.className = 'stamp';
     if (imageWrapper) imageWrapper.style.display = 'block';
 
     try {
@@ -97,11 +99,12 @@ document.addEventListener('DOMContentLoaded', () => {
       alert(`Audit Error: ${err.message}`);
     } finally {
       isProcessing = false;
-      loadingDiv.classList.add('hidden');
+      loadingDiv?.classList.add('hidden');
     }
   }
 
   async function submitChallenge() {
+    if (!challengeInput) return;
     const critique = challengeInput.value.trim();
     if (!critique || !currentBandName || isProcessing) return;
 
@@ -110,8 +113,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     isProcessing = true;
     updateLoadingText(`Re-auditing ${currentBandName} with your challenge...`);
-    loadingDiv.classList.remove('hidden');
-    resultCard.classList.add('hidden');
+    
+    loadingDiv?.classList.remove('hidden');
+    resultCard?.classList.add('hidden');
 
     try {
       const res = await fetch('/api/challenge', {
@@ -135,16 +139,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       challengeInput.value = '';
-      challengeBox.classList.add('hidden');
+      challengeBox?.classList.add('hidden');
       await renderCard(data);
 
     } catch (err) {
       if (err.name === 'AbortError') return;
-      resultCard.classList.remove('hidden');
+      resultCard?.classList.remove('hidden');
       alert(`Re-Audit Error: ${err.message}`);
     } finally {
       isProcessing = false;
-      loadingDiv.classList.add('hidden');
+      loadingDiv?.classList.add('hidden');
     }
   }
 
@@ -152,42 +156,37 @@ document.addEventListener('DOMContentLoaded', () => {
     currentBandName = data.band_name;
     const imgSrc = await fetchWikiImage(data.band_name);
 
-    if (imgSrc) {
+    if (imgSrc && bandPhoto) {
       bandPhoto.src = imgSrc;
       bandPhoto.onerror = () => { if (imageWrapper) imageWrapper.style.display = 'none'; };
-    } else {
-      if (imageWrapper) imageWrapper.style.display = 'none';
+    } else if (imageWrapper) {
+      imageWrapper.style.display = 'none';
     }
 
-    bandNameHeading.textContent = data.band_name;
-    scoreValue.textContent = `${data.calculated_score}%`;
-    tierBadge.textContent = data.tier_label;
-    tierBadge.className = 'badge';
-    auditSummary.textContent = data.summary;
+    if (bandNameHeading) bandNameHeading.textContent = data.band_name;
+    if (scoreValue) scoreValue.textContent = `${data.calculated_score}%`;
+    if (tierBadge) {
+      tierBadge.textContent = data.tier_label;
+      tierBadge.className = 'badge';
+    }
+    if (auditSummary) auditSummary.textContent = data.summary;
 
-    stampOverlay.textContent = `${data.calculated_score}% PURITY`;
-    stampOverlay.classList.add(data.badge_type);
+    if (stampOverlay) {
+      stampOverlay.textContent = `${data.calculated_score}% PURITY`;
+      stampOverlay.classList.add(data.badge_type);
+    }
 
-    resultCard.classList.remove('hidden');
+    resultCard?.classList.remove('hidden');
   }
 
-  if (stampBtn) {
-    stampBtn.addEventListener('click', performAudit);
-  }
-  
-  if (bandInput) {
-    bandInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') performAudit(e);
-    });
-  }
+  stampBtn?.addEventListener('click', performAudit);
+  bandInput?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') performAudit(e);
+  });
 
-  if (challengeToggleBtn) {
-    challengeToggleBtn.addEventListener('click', () => {
-      challengeBox.classList.toggle('hidden');
-    });
-  }
+  challengeToggleBtn?.addEventListener('click', () => {
+    challengeBox?.classList.toggle('hidden');
+  });
 
-  if (submitChallengeBtn) {
-    submitChallengeBtn.addEventListener('click', submitChallenge);
-  }
+  submitChallengeBtn?.addEventListener('click', submitChallenge);
 });
