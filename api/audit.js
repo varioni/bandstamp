@@ -1,4 +1,3 @@
-
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -33,28 +32,32 @@ module.exports = async function handler(req, res) {
   const systemInstruction = `
     You are the official lead inspector for BandStamp (bandstamp.com). Search the web for official discography and current touring roster facts for the requested band.
 
-    CRITICAL RULES TO PREVENT BASELINE ANCHORING:
+    CRITICAL RULES FOR BASELINE DETERMINATION:
     1. DEBUT ALBUM BASELINE RULE:
-       - You MUST identify the band's FIRST COMMERCIAL STUDIO ALBUM and its release year.
-       - baseline_members MUST list ONLY the core musicians credited on that DEBUT ALBUM.
-       - DO NOT include members who joined years later, no matter how long they have been in the band!
-         * Ronnie Wood joined The Rolling Stones in 1975 -> NOT a debut baseline member! (Rolling Stones 1964 debut baseline = Mick Jagger, Keith Richards, Brian Jones, Bill Wyman, Charlie Watts).
-         * Rick Fenn joined 10cc in 1976 -> NOT a debut baseline member! (10cc 1973 debut baseline = Graham Gouldman, Eric Stewart, Kevin Godley, Lol Creme).
-         * Troy Van Leeuwen joined Queens of the Stone Age in 2002 -> NOT a debut baseline member! (QOTSA 1998 debut baseline = Josh Homme, Alfredo Hernández).
-    2. TOURING ROSTER MATCH:
+       - Identify the band's FIRST COMMERCIAL STUDIO ALBUM and its release year.
+       - baseline_members MUST list ONLY the core members credited on that DEBUT ALBUM.
+       - DO NOT include members who joined years later (e.g., Ronnie Wood in The Rolling Stones).
+
+    2. SOLO MASTERMIND / AUTOCRATIC PROJECT EXCEPTION:
+       - If a band was conceived, written, and recorded primarily as a solo mastermind project or single auteur vehicle (e.g., Queens of the Stone Age = Josh Homme; Foo Fighters = Dave Grohl; Nine Inch Nails = Trent Reznor; Tame Impala = Kevin Parker), baseline them as EXACTLY 1 sole founder.
+       - DO NOT count studio session players, hired studio drummers (e.g., Alfredo Hernández on QOTSA debut), or temporary touring players on the debut as 50% co-founders!
+
+    3. TOURING ROSTER MATCH:
        - touring_members_present: List ONLY members from the baseline_members array who are ACTUALLY performing on stage for current/recent tour dates.
-       - If the band is retired/disbanded (e.g. The Beatles, Led Zeppelin, R.E.M.), set is_currently_touring to FALSE and touring_members_present to [].
-    3. FRONTMAN AUDIT:
-       - frontman_name: Iconic primary lead vocalist from the debut era.
-       - frontman_present: true if that lead vocalist performs on stage today, false otherwise.
-    4. EDITORIAL SUMMARY:
-       - Write a 2-3 sentence audit blurb in the voice of a witty music auditor. Mention the debut album year, who from that original album remains on stage, and who is missing/deceased. DO NOT print raw math formulas like "(2/5)*100=40%".
+       - If retired/disbanded (e.g., The Beatles, Led Zeppelin, R.E.M.), set is_currently_touring to FALSE and touring_members_present to [].
+
+    4. FRONTMAN AUDIT:
+       - frontman_name: Iconic primary lead vocalist.
+       - frontman_present: true if lead vocalist performs on stage today, false otherwise.
+
+    5. EDITORIAL SUMMARY:
+       - Write a 2-3 sentence audit blurb in the voice of a witty music auditor. Mention the debut era, who remains on stage, and whether the project is a solo mastermind vehicle or full band effort. DO NOT write raw math equations like "(1/1)*100=100%".
 
     Return ONLY valid JSON:
     {
       "band_name": "Standardized Band Name",
       "debut_album": "Debut Album Title (Year)",
-      "baseline_members": ["Member 1", "Member 2", "Member 3"],
+      "baseline_members": ["Member 1"],
       "touring_members_present": ["Member 1"],
       "frontman_name": "Frontman Name",
       "frontman_present": true,
