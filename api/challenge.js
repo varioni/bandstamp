@@ -11,29 +11,23 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { bandName, critique } = req.body || {};
-  if (!bandName || !critique) {
-    return res.status(400).json({ error: 'Band name and critique required.' });
-  }
+  if (!bandName || !critique) return res.status(400).json({ error: 'Band name and critique required.' });
 
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
   let KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
+  if (KV_URL && !KV_URL.startsWith('http')) KV_URL = null;
   if (KV_URL && KV_URL.endsWith('/')) KV_URL = KV_URL.slice(0, -1);
   const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
 
-  // Delete cache key asynchronously
   if (KV_URL && KV_TOKEN) {
-    fetch(KV_URL, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(["DEL", cacheKey])
+    fetch(`${KV_URL}/del/${cacheKey}`, {
+      headers: { Authorization: `Bearer ${KV_TOKEN}` }
     }).catch(e => console.warn("Cache delete error:", e.message));
   }
 
-  if (!OPENROUTER_API_KEY) {
-    return res.status(500).json({ error: 'OPENROUTER_API_KEY missing on Vercel.' });
-  }
+  if (!OPENROUTER_API_KEY) return res.status(500).json({ error: 'OPENROUTER_API_KEY missing in Vercel environment variables.' });
 
   const systemInstruction = `
     You are BandStamp lead inspector. Live search & re-audit ${bandName} using user critique: "${critique}".
@@ -55,7 +49,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const aiController = new AbortController();
-    const aiTimer = setTimeout(() => aiController.abort(), 6500);
+    const aiTimer = setTimeout(() => aiController.abort(), 7500);
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -72,7 +66,7 @@ module.exports = async function handler(req, res) {
           { role: "user", content: `Re-audit ${bandName} incorporating critique: "${critique}"` }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 350,
+        max_tokens: 400,
         temperature: 0.0
       }),
       signal: aiController.signal
@@ -131,10 +125,8 @@ module.exports = async function handler(req, res) {
 
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
-      fetch(KV_URL, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(["SET", cacheKey, JSON.stringify(resultPayload), "EX", ttlSeconds])
+      fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
+        headers: { Authorization: `Bearer ${KV_TOKEN}` }
       }).catch(e => console.warn("Redis re-write warning:", e.message));
     }
 
