@@ -1,4 +1,4 @@
-// Vercel Serverless Function: Lineup Audit API
+// Vercel Serverless Function: Lineup Audit Endpoint
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -16,18 +16,18 @@ export default async function handler(req, res) {
   try {
     const cleanArtist = artist.trim();
     const auditData = await evaluateLineup(cleanArtist, controller.signal);
-    
+
     clearTimeout(timeoutId);
     return res.status(200).json(auditData);
   } catch (error) {
     clearTimeout(timeoutId);
 
     if (error.name === 'AbortError') {
-      return res.status(504).json({ error: 'Request timed out while evaluating lineup.' });
+      return res.status(504).json({ error: 'Request timed out evaluating lineup.' });
     }
 
-    return res.status(500).json({ 
-      error: error.message || 'An error occurred during band audit processing.' 
+    return res.status(500).json({
+      error: error.message || 'Internal server error processing audit.'
     });
   }
 }
