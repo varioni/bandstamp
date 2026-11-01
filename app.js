@@ -19,6 +19,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentBandName = '';
 
+  function updateLoadingText(msg) {
+    if (loadingDiv) {
+      const p = loadingDiv.querySelector('p') || loadingDiv;
+      p.textContent = msg;
+    }
+  }
+
   async function fetchWikiImage(queryName) {
     const clean = queryName.trim();
     const candidates = [];
@@ -51,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!query) return;
 
     currentBandName = query;
+    updateLoadingText(`Connecting to server for ${query}...`);
     loadingDiv.classList.remove('hidden');
     resultCard.classList.add('hidden');
     challengeBox.classList.add('hidden');
@@ -58,23 +66,33 @@ document.addEventListener('DOMContentLoaded', () => {
     if (imageWrapper) imageWrapper.style.display = 'block';
 
     try {
+      updateLoadingText(`Auditing live roster for ${query}...`);
       const res = await fetch('/api/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bandName: query })
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Audit request failed');
+      let data;
+      const textResponse = await res.text();
+
+      try {
+        data = JSON.parse(textResponse);
+      } catch (jsonErr) {
+        throw new Error(`Server returned non-JSON response (HTTP ${res.status}): ${textResponse.slice(0, 150)}...`);
       }
 
-      const data = await res.json();
-      renderCard(data);
+      if (!res.ok) {
+        const stepInfo = data.failed_step ? ` [Failed Step: ${data.failed_step}]` : '';
+        throw new Error((data.error || `Server Error ${res.status}`) + stepInfo);
+      }
+
+      updateLoadingText(`Fetching band image...`);
+      await renderCard(data);
 
     } catch (err) {
       loadingDiv.classList.add('hidden');
-      alert(`Audit Error: ${err.message}`);
+      alert(`Audit Diagnostics Alert:\n\n${err.message}`);
     }
   }
 
@@ -82,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const critique = challengeInput.value.trim();
     if (!critique || !currentBandName) return;
 
+    updateLoadingText(`Re-auditing ${currentBandName} with critique...`);
     loadingDiv.classList.remove('hidden');
     resultCard.classList.add('hidden');
 
@@ -92,15 +111,22 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ bandName: currentBandName, critique: critique })
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Re-audit request failed');
+      let data;
+      const textResponse = await res.text();
+
+      try {
+        data = JSON.parse(textResponse);
+      } catch (jsonErr) {
+        throw new Error(`Server returned non-JSON response (HTTP ${res.status}): ${textResponse.slice(0, 150)}...`);
       }
 
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || `Server Error ${res.status}`);
+      }
+
       challengeInput.value = '';
       challengeBox.classList.add('hidden');
-      renderCard(data);
+      await renderCard(data);
 
     } catch (err) {
       loadingDiv.classList.add('hidden');
