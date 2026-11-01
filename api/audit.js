@@ -34,26 +34,24 @@ module.exports = async function handler(req, res) {
 
     STRICT DEBUT BASELINE RULES:
     1. STRICT DEBUT ALBUM BASELINE RULE:
-       - You MUST identify the band's FIRST COMMERCIAL STUDIO ALBUM and its release year.
-       - baseline_members MUST list ONLY the core musicians credited on that FIRST DEBUT ALBUM (or 1st founding release).
-       - DO NOT use later "breakthrough" lineups! Famous members who joined after the debut album ARE NOT baseline members!
-         * Red Hot Chili Peppers (1984 Debut): Baseline = 4 members (Anthony Kiedis, Flea, Jack Sherman, Cliff Martinez [or 1983 founders Slovak/Irons]). John Frusciante and Chad Smith joined in 1988 -> NOT debut baseline members! Active on stage today = 2 of 4 baseline members (Kiedis, Flea) = 50%.
-         * The Rolling Stones (1964 Debut): Ronnie Wood joined in 1975 -> NOT a debut baseline member! Baseline = 5 members (Jagger, Richards, Jones, Wyman, Watts). Active on stage today = 2 of 5 = 40%.
-         * Blink-182 (1995 Debut): Travis Barker joined in 1998 -> NOT a debut baseline member! (Scott Raynor was the debut drummer).
+       - Identify the band's FIRST COMMERCIAL STUDIO ALBUM and its release year.
+       - baseline_members MUST list ONLY the core musicians credited on that FIRST DEBUT ALBUM.
+       - DO NOT include members who joined years later!
 
     2. SOLO MASTERMIND / AUTOCRATIC PROJECT EXCEPTION:
-       - If a band was conceived, written, and recorded primarily as a solo auteur vehicle (e.g., Queens of the Stone Age = Josh Homme; Foo Fighters = Dave Grohl; Nine Inch Nails = Trent Reznor; Tame Impala = Kevin Parker), baseline them as EXACTLY 1 sole founder.
+       - If a band was conceived, written, and recorded primarily as a solo auteur vehicle (e.g., Queens of the Stone Age, Foo Fighters, Nine Inch Nails, Tame Impala), baseline them as EXACTLY 1 sole founder.
 
     3. TOURING ROSTER MATCH:
        - touring_members_present: List ONLY members from the baseline_members array who are ACTUALLY performing on stage for current/recent tour dates.
        - If retired/disbanded (e.g., The Beatles, Led Zeppelin, R.E.M.), set is_currently_touring to FALSE and touring_members_present to [].
 
     4. FRONTMAN AUDIT:
-       - frontman_name: Iconic primary lead vocalist from debut era.
+       - frontman_name: Primary lead vocalist from debut era.
        - frontman_present: true if lead vocalist performs on stage today, false otherwise.
 
     5. EDITORIAL SUMMARY:
-       - Write a 2-3 sentence audit narrative in the voice of a witty music auditor. Mention the debut album/year, explicitly state who from that original debut remains on stage vs who joined later, and explain the purity score. DO NOT write raw math formulas like "(2/4)*100=50%".
+       - Write a 2-3 sentence audit narrative in the voice of a witty music auditor. Mention the debut album/year and who from that original debut remains on stage vs missing.
+       - CRITICAL: DO NOT state specific numeric purity percentages in the text (e.g., do NOT write "giving them a score of 25%"), as the badge overlay handles the numeric score dynamically.
 
     Return ONLY valid JSON:
     {
@@ -116,16 +114,14 @@ module.exports = async function handler(req, res) {
     let baseScore = Math.round((presentBase / totalBase) * 100);
     let finalScore = baseScore;
 
-    // 1. Frontman Tax (-30%)
-    if (!data.frontman_present) {
+    if (presentBase === 0) {
+      finalScore = 0;
+    } else if (presentBase === 1 && !data.frontman_present) {
+      // Last Man Standing Rule: Lock at 25% when 1 non-frontman original member remains
+      finalScore = 25;
+    } else if (!data.frontman_present && presentBase > 1) {
+      // Frontman Tax (-30%) applies only when multiple original members remain without lead singer
       finalScore -= 30;
-    }
-
-    // 2. Last Man Standing Cap (Max 25%)
-    if (presentBase === 1 && !data.frontman_present) {
-      if (finalScore > 25) {
-        finalScore = 25;
-      }
     }
 
     // Clamp score between 0% and 100%
