@@ -17,7 +17,6 @@ module.exports = async function handler(req, res) {
 
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
   
-  // REST API URL Sanitization: Ignore rediss:// protocol URLs
   let KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
@@ -30,7 +29,6 @@ module.exports = async function handler(req, res) {
 
   const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
 
-  // 1. Fast Redis Cache Read (<500ms timeout)
   if (KV_URL && KV_TOKEN) {
     try {
       const kvController = new AbortController();
@@ -81,9 +79,10 @@ module.exports = async function handler(req, res) {
     }
   `;
 
+  let aiTimer; // Scope timer outside try block so we can clear it if it fails
   try {
     const aiController = new AbortController();
-    const aiTimer = setTimeout(() => aiController.abort(), 7500);
+    aiTimer = setTimeout(() => aiController.abort(), 7500);
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -119,7 +118,6 @@ module.exports = async function handler(req, res) {
 
     const data = JSON.parse(textOutput);
 
-    // Deterministic Math
     const baselineList = data.baseline_members || [];
     let touringList = data.touring_members_present || [];
     if (data.is_currently_touring === false) touringList = [];
@@ -158,7 +156,6 @@ module.exports = async function handler(req, res) {
       summary: summary
     };
 
-    // Asynchronous Redis write via standard REST endpoint
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
       fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
@@ -169,6 +166,7 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ...resultPayload, cached: false });
 
   } catch (err) {
+    if (aiTimer) clearTimeout(aiTimer); // Fix: Prevent memory lockup if the fetch fails
     return res.status(500).json({ error: `Server Exception: ${err.message}` });
   }
 };
