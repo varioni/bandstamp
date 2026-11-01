@@ -1,5 +1,4 @@
 module.exports = async function handler(req, res) {
-  // CORS & Edge Caching Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
@@ -8,7 +7,7 @@ module.exports = async function handler(req, res) {
     'X-CSRF-Token, X-Requested-With, Accept, Content-Type'
   );
   
-  // Edge Caching: 12 Hours
+  // Cache audit responses at Vercel's Edge CDN for 12 hours
   res.setHeader('Cache-Control', 's-maxage=43200, stale-while-revalidate=21600');
 
   if (req.method === 'OPTIONS') {
@@ -31,42 +30,38 @@ module.exports = async function handler(req, res) {
   }
 
   const systemInstruction = `
-    You are the official lead inspector for BandStamp (bandstamp.com). Perform live web searches to verify official discography, lineup changes, hiatuses, and active touring status for the requested band.
+    You are the official lead inspector for BandStamp (bandstamp.com). Search the web for official tour dates, member mortality/departures, and active stage status for the requested band.
 
-    CRITICAL AUDIT & BASELINE RULES:
-    1. DEBUT BASELINE DEFAULT:
-       - By default, baseline_members MUST list ONLY core members credited on the FIRST COMMERCIAL DEBUT ALBUM (e.g., Rolling Stones = Jagger, Richards, Jones, Wyman, Watts [Ronnie Wood joined in 1975]; RHCP = Kiedis, Flea, Jack Sherman, Cliff Martinez or 1983 founders Slovak/Irons [Frusciante/Smith joined in 1988]).
+    STRICT AUDIT & VERIFICATION RULES:
+    1. ACTIVE TOUR DATE VERIFICATION (CRITICAL):
+       - Check if the band has ACTIVE or ANNOUNCED concert tour dates in 2025 or 2026.
+       - If a band is dormant, on indefinite hiatus, or has not performed live shows in several years (e.g., Butthole Surfers, who have been inactive since the 2010s), you MUST set is_currently_touring to FALSE and touring_members_present to [].
+       - DO NOT assume a band is touring in 2026 just because they never formally broke up!
 
-    2. BREAKTHROUGH ROSTER CLAUSE (EXCEPTION TO RULE 1):
-       - If an early replacement member permanently defined the band's signature classic legacy, include them in the classic baseline roster:
-         * Nirvana = Kurt Cobain, Krist Novoselic, Dave Grohl
-         * Deep Purple (Mark II) = Ian Gillan, Ritchie Blackmore, Roger Glover, Jon Lord, Ian Paice
-         * Blink-182 = Mark Hoppus, Tom DeLonge, Travis Barker
+    2. MORTALITY & DEPARTURE MANDATE:
+       - Check if any baseline members are deceased (e.g., Teresa Taylor of Butthole Surfers died in 2023; Kurt Cobain died in 1994; Jon Lord died in 2012). Deceased members CANNOT be listed in touring_members_present!
 
-    3. SOLO MASTERMIND EXCEPTION:
-       - If a project is a solo auteur vehicle (e.g., Queens of the Stone Age = Josh Homme; Foo Fighters = Dave Grohl; Nine Inch Nails = Trent Reznor; Tame Impala = Kevin Parker), baseline them as EXACTLY 1 sole founder. Ignore studio session musicians or hired drummers.
+    3. DEBUT & BREAKTHROUGH BASELINE:
+       - Default to core credited debut album members (e.g., Rolling Stones = Jagger, Richards, Jones, Wyman, Watts).
+       - Exception for classic defining lineups: Nirvana = Cobain, Novoselic, Grohl; Deep Purple Mark II = Gillan, Blackmore, Glover, Lord, Paice; Butthole Surfers classic = Haynes, Leary, Coffey, Pinkus, Taylor.
 
-    4. HARD CROSS-CHECK MANDATE:
-       - ANY core member you mention as deceased, missing, sitting out, or replaced in editorial_summary MUST be present in baseline_members and ABSENT from touring_members_present.
+    4. SOLO MASTERMIND EXCEPTION:
+       - Solo auteur projects (Queens of the Stone Age, Foo Fighters, Nine Inch Nails, Tame Impala) baseline as EXACTLY 1 sole founder.
 
-    5. DISBANDED BANDS & MONIKER RULE:
-       - A band is ONLY "is_currently_touring: true" if baseline members perform TOGETHER UNDER THAT EXACT BAND NAME in 2025/2026.
-       - Defunct/disbanded groups (Nirvana, The Beatles, Led Zeppelin, R.E.M.) MUST have is_currently_touring set to FALSE and touring_members_present set to [].
-       - Surviving members touring in solo projects or other bands DOES NOT count towards active touring status!
-
-    6. EDITORIAL SUMMARY RESTRICTION:
+    5. EDITORIAL SUMMARY RESTRICTION:
        - Write a 2-3 sentence audit narrative in the voice of a witty, sardonic music auditor.
-       - DO NOT write specific numeric percentage figures or raw math equations in the summary text (e.g. do NOT write "giving them a score of 25%").
+       - Explicitly mention if the band is dormant, disbanded, or missing core members.
+       - DO NOT write raw percentage figures or math strings in the summary text.
 
-    Return ONLY valid JSON matching this schema:
+    Return ONLY valid JSON:
     {
       "band_name": "Standardized Band Name",
-      "debut_album": "Debut / Landmark Era Title",
+      "debut_album": "Landmark Era Title",
       "baseline_members": ["Member 1", "Member 2"],
-      "touring_members_present": ["Member 1"],
+      "touring_members_present": [],
       "frontman_name": "Frontman Name",
-      "frontman_present": true,
-      "is_currently_touring": true,
+      "frontman_present": false,
+      "is_currently_touring": false,
       "editorial_summary": "Witty audit blurb here..."
     }
   `;
@@ -85,7 +80,7 @@ module.exports = async function handler(req, res) {
         plugins: [{ id: "web" }],
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Audit the touring lineup and baseline roster for: ${bandName}` }
+          { role: "user", content: `Audit current 2025/2026 live touring status and baseline lineup for: ${bandName}` }
         ],
         response_format: { type: "json_object" },
         max_tokens: 700,
@@ -122,17 +117,13 @@ module.exports = async function handler(req, res) {
     if (presentBase === 0) {
       finalScore = 0;
     } else if (presentBase === 1 && !data.frontman_present) {
-      // Last Man Standing Rule: Lock at 25% when 1 non-frontman original member remains
       finalScore = 25;
     } else if (!data.frontman_present && presentBase > 1) {
-      // Frontman Tax (-30%) applies when multiple original members tour without lead singer
       finalScore -= 30;
     }
 
-    // Clamp score between 0% and 100%
     finalScore = Math.max(0, Math.min(100, finalScore));
 
-    // Assign Official Tiers
     let tier_label = "";
     let badge_type = "";
     if (finalScore === 100) {
