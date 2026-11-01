@@ -24,10 +24,10 @@ module.exports = async function handler(req, res) {
   const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  // Cache key slug
+  // Standardize Redis Key slug
   const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
 
-  // 1. Purge Existing Cache Key from Upstash Redis
+  // 1. Purge existing cache entry in Upstash Redis
   if (KV_URL && KV_TOKEN) {
     try {
       await fetch(`${KV_URL}/del/${cacheKey}`, {
@@ -43,16 +43,16 @@ module.exports = async function handler(req, res) {
   }
 
   const systemInstruction = `
-    You are the official lead inspector for BandStamp (bandstamp.com). Re-audit the requested band based on a user lineup challenge.
+    You are the official lead inspector for BandStamp (bandstamp.com). Conduct a live search to re-audit the requested band based on user feedback.
 
     CRITICAL RE-AUDIT INSTRUCTIONS:
-    - A user challenged the previous audit with this feedback: "${critique}".
-    - Fact-check this critique against official discography and 2025/2026 concert history. If the user's critique is valid, adjust baseline_members, touring_members_present, or is_currently_touring accordingly.
-    - Standard BandStamp Rules:
-      1. Debut Album Baseline Default (or iconic breakthrough lineup if defining).
-      2. Solo Mastermind Exception (QOTSA, Foo Fighters, NIN = 1 founder).
-      3. Hard Cross-Check Mandate (missing members mentioned in narrative must be in baseline and absent from touring).
-      4. Active Tour Date & Moniker verification (must have active 2025/2026 dates under exact band name).
+    - User Critique: "${critique}".
+    - Perform a live web search to fact-check this critique. If valid, adjust baseline_members, touring_members_present, or is_currently_touring accordingly.
+    - Standard BandStamp Audit Rules:
+      1. DEBUT & BREAKTHROUGH BASELINE: Default to debut album core members (e.g. Rolling Stones = Jagger, Richards, Jones, Wyman, Watts). Exception for classic defining rosters (Nirvana = Cobain, Novoselic, Grohl; Deep Purple Mark II = Gillan, Blackmore, Glover, Lord, Paice).
+      2. SOLO MASTERMIND EXCEPTION: Solo auteur projects (QOTSA, Foo Fighters, NIN, Tame Impala) baseline as EXACTLY 1 sole founder.
+      3. HARD CROSS-CHECK MANDATE: Any baseline member mentioned as deceased, missing, or sitting out MUST be present in baseline_members and ABSENT from touring_members_present.
+      4. ACTIVE TOUR DATE & MONIKER VERIFICATION: Verify active 2025/2026 tour dates under this exact band name. Defunct/disbanded bands must have is_currently_touring set to FALSE and touring_members_present set to [].
     - DO NOT write raw percentage figures or math strings in the summary text.
 
     Return ONLY valid JSON:
@@ -78,14 +78,13 @@ module.exports = async function handler(req, res) {
         "X-Title": "BandStamp"
       },
       body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
-        plugins: [{ id: "web" }],
+        model: "perplexity/sonar",
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Re-audit current lineup for ${bandName} taking into account user critique: "${critique}"` }
+          { role: "user", content: `Search the web and re-audit lineup for ${bandName} incorporating critique: "${critique}"` }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 700,
+        max_tokens: 600,
         temperature: 0.0
       })
     });
@@ -151,7 +150,7 @@ module.exports = async function handler(req, res) {
       summary: summary
     };
 
-    // 2. Save Updated Result to Upstash Redis
+    // Save Updated Result to Upstash Redis
     if (KV_URL && KV_TOKEN) {
       try {
         const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
