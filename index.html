@@ -3,109 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BandStamp - Lineup Purity Audit for Live Music</title>
-  <link rel="icon" type="image/png" href="logo.png">
+  <title>BandStamp - Live Band Lineup Authenticity Index</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Special+Elite&display=swap" rel="stylesheet">
 </head>
-
 <body>
-
-  <header>
+  <header class="navbar">
     <div class="logo-container">
-      <a href="index.html">
-        <img src="logo.png" alt="BandStamp Logo" class="site-logo">
-      </a>
-      <h1 class="brand-title">BANDSTAMP</h1>
-      <p class="tagline">Lineup Purity Audit for Live Music</p>
+      <img src="logo.png" alt="BandStamp Logo" class="logo" style="width: 40px;" />
+      <span class="brand-title">BandStamp</span>
     </div>
+    <nav>
+      <a href="index.html" class="active">Audit</a>
+      <a href="about.html">About</a>
+    </nav>
   </header>
 
-  <main>
-    <!-- Search Bar Section -->
-    <div class="search-box">
-      <input type="text" id="band-input" placeholder="Enter a touring band" />
-      <button id="stamp-btn">STAMP THIS BAND</button>
-    </div>
-
-    <!-- Loading State -->
-    <div id="loading" class="hidden">
-      <p>Auditing live touring roster...</p>
-    </div>
-
-    <!-- Dynamic Audit Result Card -->
-    <div id="result-card" class="card hidden">
-      <div class="image-wrapper">
-        <img id="band-photo" src="" alt="Band Photo">
-        <div id="stamp-overlay" class="stamp"></div>
-      </div>
-      <div class="card-details">
-        <h2 id="band-name-heading">Band Name</h2>
-        <div id="tier-badge" class="badge">TIER</div>
-        <div class="score-display">Purity Score: <span id="score-value">0%</span></div>
-        <p id="audit-summary">Audit summary narrative will load here...</p>
-      </div>
-    </div>
-
-    <!-- Permanent Scorecard Legend Section -->
-    <section class="scorecard-legend">
-      <h3 class="legend-title">OFFICIAL LINEUP PURITY SCORECARD</h3>
-      <div class="legend-list">
-        
-        <div class="legend-item tier-gold">
-          <div class="legend-score">100%</div>
-          <div class="legend-text">
-            <span class="legend-name">Tier 1: Unbroken Circle</span>
-            <span class="legend-desc">Original founding lineup fully intact on stage.</span>
-          </div>
-        </div>
-
-        <div class="legend-item tier-green">
-          <div class="legend-score">75%–99%</div>
-          <div class="legend-text">
-            <span class="legend-name">Tier 2: Near-Mint Vintage</span>
-            <span class="legend-desc">Core members present with minimal lineup substitutions.</span>
-          </div>
-        </div>
-
-        <div class="legend-item tier-yellow">
-          <div class="legend-score">50%–74%</div>
-          <div class="legend-text">
-            <span class="legend-name">Tier 3: Co-Founder Equity</span>
-            <span class="legend-desc">At least half of the original core roster remains active.</span>
-          </div>
-        </div>
-
-        <div class="legend-item tier-orange">
-          <div class="legend-score">25%–49%</div>
-          <div class="legend-text">
-            <span class="legend-name">Tier 4: Solo Project in Disguise</span>
-            <span class="legend-desc">Heavy member loss or replaced iconic lead frontman.</span>
-          </div>
-        </div>
-
-        <div class="legend-item tier-red">
-          <div class="legend-score">0%–24%</div>
-          <div class="legend-text">
-            <span class="legend-name">Tier 5: The Ghost Ship (Zombie Franchise)</span>
-            <span class="legend-desc">No core original members or single non-singer remaining.</span>
-          </div>
-        </div>
-
-      </div>
+  <main class="container">
+    <section class="hero">
+      <h1>BandStamp Verification</h1>
+      <p>Evaluate the original lineup ratio for touring music acts before buying tickets.</p>
+      
+      <form id="search-form" class="search-box">
+        <input 
+          type="text" 
+          id="artist-input" 
+          placeholder="Enter band or artist name (e.g. Pixies, Smashing Pumpkins)..." 
+          required 
+          autocomplete="off"
+        />
+        <button type="submit" id="search-btn">Check Lineup</button>
+      </form>
     </section>
 
-    <!-- Score Calculation Guide Link -->
-    <div class="guide-link-container">
-      <a href="about.html" class="guide-link">Score Calculation Guide &rarr;</a>
-    </div>
+    <div id="loading-spinner" class="spinner" style="display: none;"></div>
 
+    <section id="results-container" class="results-wrapper"></section>
   </main>
 
   <footer>
-    <p>Made with &#10084;&#65039; by <a href="https://github.com/varioni" target="_blank" rel="noopener">varioni</a></p>
+    <p>&copy; 2026 BandStamp. Evaluating live music authenticity.</p>
   </footer>
 
   <script src="app.js"></script>
