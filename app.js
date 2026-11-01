@@ -18,6 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitChallengeBtn = document.getElementById('submit-challenge-btn');
 
   let currentBandName = '';
+  
+  // FIX: Execution locks to prevent browser freeze
+  let isProcessing = false; 
+  let activeRequestController = null; 
 
   function updateLoadingText(msg) {
     if (loadingDiv) {
@@ -55,8 +59,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function performAudit() {
     const query = bandInput.value.trim();
-    if (!query) return;
+    if (!query || isProcessing) return; // Prevent stacked executions
 
+    // Cancel any inflight API requests to free up the browser thread
+    if (activeRequestController) activeRequestController.abort();
+    activeRequestController = new AbortController();
+    
+    isProcessing = true;
     currentBandName = query;
     updateLoadingText(`Auditing lineup for ${query}...`);
     loadingDiv.classList.remove('hidden');
@@ -69,7 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bandName: query })
+        body: JSON.stringify({ bandName: query }),
+        signal: activeRequestController.signal // Bind the abort controller
       });
 
       const textResponse = await res.text();
@@ -88,16 +98,22 @@ document.addEventListener('DOMContentLoaded', () => {
       await renderCard(data);
 
     } catch (err) {
+      if (err.name === 'AbortError') return; // Ignore errors from deliberately cancelled requests
       alert(`Audit Error: ${err.message}`);
     } finally {
+      isProcessing = false;
       loadingDiv.classList.add('hidden');
     }
   }
 
   async function submitChallenge() {
     const critique = challengeInput.value.trim();
-    if (!critique || !currentBandName) return;
+    if (!critique || !currentBandName || isProcessing) return;
 
+    if (activeRequestController) activeRequestController.abort();
+    activeRequestController = new AbortController();
+
+    isProcessing = true;
     updateLoadingText(`Re-auditing ${currentBandName}...`);
     loadingDiv.classList.remove('hidden');
     resultCard.classList.add('hidden');
@@ -106,7 +122,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/challenge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bandName: currentBandName, critique: critique })
+        body: JSON.stringify({ bandName: currentBandName, critique: critique }),
+        signal: activeRequestController.signal
       });
 
       const textResponse = await res.text();
@@ -127,9 +144,11 @@ document.addEventListener('DOMContentLoaded', () => {
       await renderCard(data);
 
     } catch (err) {
+      if (err.name === 'AbortError') return;
       resultCard.classList.remove('hidden');
       alert(`Re-Audit Error: ${err.message}`);
     } finally {
+      isProcessing = false;
       loadingDiv.classList.add('hidden');
     }
   }
@@ -159,7 +178,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   stampBtn.addEventListener('click', performAudit);
   bandInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') performAudit();
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Fix: Prevent accidental browser form-submission loop
+      performAudit();
+    }
   });
 
   challengeToggleBtn.addEventListener('click', () => {
