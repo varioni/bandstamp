@@ -13,25 +13,33 @@ document.addEventListener('DOMContentLoaded', () => {
   const auditSummary = document.getElementById('audit-summary');
 
   async function fetchWikiImage(queryName) {
-    try {
-      // 1. Try direct search query
-      let res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(queryName)}`);
-      let data = res.ok ? await res.json() : null;
-      let imgSrc = data?.thumbnail?.source || data?.originalimage?.source;
+    const clean = queryName.trim();
+    const candidates = [];
 
-      // 2. Fallback to queryName + " (band)" if first try has no image or hits disambiguation
-      if (!imgSrc && !queryName.toLowerCase().includes('(band)')) {
-        const fallbackRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(queryName + ' (band)')}`);
-        if (fallbackRes.ok) {
-          const fallbackData = await fallbackRes.json();
-          imgSrc = fallbackData?.thumbnail?.source || fallbackData?.originalimage?.source;
-        }
-      }
-
-      return imgSrc || null;
-    } catch (e) {
-      return null;
+    if (clean.toLowerCase().includes('(band)') || clean.toLowerCase().includes('(musical group)')) {
+      candidates.push(clean);
+    } else {
+      // Prioritize (band) first to prevent hitting clowns, movies, or monarchs!
+      candidates.push(`${clean} (band)`);
+      candidates.push(clean);
+      candidates.push(`${clean} (musical group)`);
     }
+
+    for (const title of candidates) {
+      try {
+        const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.type === 'disambiguation') continue;
+          
+          const imgSrc = data.thumbnail?.source || data.originalimage?.source;
+          if (imgSrc) return imgSrc;
+        }
+      } catch (e) {
+        // Try next candidate
+      }
+    }
+    return null;
   }
 
   async function performAudit() {
@@ -59,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const data = await res.json();
 
-      // 2. Fetch Photo via Wikipedia REST API with Smart Fallback
+      // 2. Fetch Photo via Wikipedia REST API with Smart (band) Priority
       const imgSrc = await fetchWikiImage(data.band_name || query);
 
       if (imgSrc) {
