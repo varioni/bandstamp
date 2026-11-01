@@ -11,7 +11,9 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { bandName, critique } = req.body || {};
-  if (!bandName || !critique) return res.status(400).json({ error: 'Band name and critique required.' });
+  if (!bandName || !critique) {
+    return res.status(400).json({ error: 'Band name and critique are required' });
+  }
 
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
   let KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
@@ -19,37 +21,33 @@ module.exports = async function handler(req, res) {
 
   if (KV_URL && !KV_URL.startsWith('http')) KV_URL = null;
   if (KV_URL && KV_URL.endsWith('/')) KV_URL = KV_URL.slice(0, -1);
-  const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
 
-  if (KV_URL && KV_TOKEN) {
-    fetch(`${KV_URL}/del/${cacheKey}`, {
-      headers: { Authorization: `Bearer ${KV_TOKEN}` }
-    }).catch(e => console.warn("Cache delete error:", e.message));
+  if (!OPENROUTER_API_KEY) {
+    return res.status(500).json({ error: 'OPENROUTER_API_KEY missing in Vercel environment variables.' });
   }
 
-  if (!OPENROUTER_API_KEY) return res.status(500).json({ error: 'OPENROUTER_API_KEY missing in Vercel environment variables.' });
-
   const systemInstruction = `
-    You are BandStamp lead inspector. Live search & re-audit ${bandName} using user critique: "${critique}".
-    Fact-check this critique via live search. Adjust baseline_members, touring_members_present, or is_currently_touring if valid.
-    NO numeric percentages or math inside text summary.
-
+    You are BandStamp lead inspector reviewing a user challenge/critique for: ${bandName}.
+    The user provided this critique/correction: "${critique}".
+    Re-evaluate the touring lineup and members present based on this new information, ensuring accurate 2025/2026 tour data and baseline rules.
+    
     Return ONLY JSON:
     {
       "band_name": "Standardized Name",
-      "debut_album": "Landmark Era Title",
+      "debut_album": "Landmark Album/Era",
       "baseline_members": ["Member 1", "Member 2"],
       "touring_members_present": [],
       "frontman_name": "Frontman",
       "frontman_present": false,
       "is_currently_touring": false,
-      "editorial_summary": "Witty audit blurb..."
+      "editorial_summary": "Updated witty audit blurb..."
     }
   `;
 
+  let aiTimer;
   try {
     const aiController = new AbortController();
-    const aiTimer = setTimeout(() => aiController.abort(), 7500);
+    aiTimer = setTimeout(() => aiController.abort(), 8500);
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -63,7 +61,7 @@ module.exports = async function handler(req, res) {
         model: "perplexity/sonar",
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Re-audit ${bandName} incorporating critique: "${critique}"` }
+          { role: "user", content: `Re-evaluate lineup for ${bandName} considering user critique: ${critique}` }
         ],
         response_format: { type: "json_object" },
         max_tokens: 400,
@@ -75,7 +73,7 @@ module.exports = async function handler(req, res) {
 
     if (!response.ok) {
       const errText = await response.text();
-      return res.status(response.status).json({ error: `OpenRouter Error (${response.status}): ${errText}` });
+      return res.status(response.status).json({ error: `OpenRouter Error: ${errText}` });
     }
 
     const rawData = await response.json();
@@ -112,7 +110,7 @@ module.exports = async function handler(req, res) {
     else if (finalScore >= 25) { tier_label = "Tier 4: Solo Project in Disguise"; badge_type = "orange"; }
     else { tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; badge_type = "red"; }
 
-    const summary = data.editorial_summary || `Re-audited ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`;
+    const summary = data.editorial_summary || `Updated audit for ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`;
 
     const resultPayload = {
       band_name: data.band_name,
@@ -123,16 +121,22 @@ module.exports = async function handler(req, res) {
       summary: summary
     };
 
+    // Update Cache with Challenge Result
+    const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
       fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
         headers: { Authorization: `Bearer ${KV_TOKEN}` }
-      }).catch(e => console.warn("Redis re-write warning:", e.message));
+      }).catch(e => console.warn("Redis write warning:", e.message));
     }
 
-    return res.status(200).json({ ...resultPayload, reaudited: true });
+    return res.status(200).json({ ...resultPayload, cached: false });
 
   } catch (err) {
+    if (aiTimer) clearTimeout(aiTimer);
+    if (err.name === 'AbortError') {
+      return res.status(504).json({ error: "Challenge evaluation timed out." });
+    }
     return res.status(500).json({ error: `Server Exception: ${err.message}` });
   }
 };
