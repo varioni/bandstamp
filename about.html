@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>About & Audit Logic - BandStamp</title>
+  <title>Score Calculation Guide - BandStamp</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -81,24 +81,24 @@
       <div class="about-section">
         <h2>The Core Debate: What Defines an "Original Member"?</h2>
         <p>
-          Lineup history in rock 'n' roll is messy. Bands replace drummers before their first tour, bring in studio session players, or add legendary long-tenured members decades down the road. 
+          Lineup history in rock 'n' roll is inherently messy. Bands swap drummers before their first tour, bring in studio session players, or add legendary long-tenured members decades down the road. 
         </p>
         <p>
           To make BandStamp deterministic and fair, we anchor our baseline on one definitive milestone: <strong>The core lineup credited on the band's landmark debut studio album</strong>.
         </p>
         <div class="rule-box">
-          <strong>Why the Debut Album?</strong> While fan-favorite members often join later (e.g., Ronnie Wood joining The Rolling Stones in 1975, or Rick Fenn joining 10cc in 1976), those musicians joined an already established corporate entity. The debut album baseline honors the founders who took the initial risk together.
+          <strong>Why the Debut Album?</strong> While fan-favorite members often join later (e.g., Ronnie Wood joining The Rolling Stones in 1975, or John Frusciante and Chad Smith joining the Red Hot Chili Peppers in 1988 after their 1984 debut), those musicians joined an already established entity. The debut album baseline honors the founders who took the initial risk together.
         </div>
       </div>
 
       <div class="about-section">
         <h2>The Scoring Formula</h2>
-        <p>Once the debut baseline is set, BandStamp inspects who is actually on stage for current tour dates and applies deterministic mathematical rules:</p>
+        <p>Once the debut baseline is established, BandStamp inspects who is actually performing on stage for current tour dates and applies deterministic mathematical rules:</p>
 
         <ul>
           <li><strong>Base Score:</strong> <code>(Present Debut Baseline Members / Total Debut Baseline Members) × 100</code></li>
           <li><strong>The Frontman Tax (-30%):</strong> Iconic lead vocalists carry disproportionate brand identity. If the primary lead singer is missing or replaced, an automatic 30% penalty is deducted from the base score.</li>
-          <li><strong>Last Man Standing Cap (Max 25%):</strong> If only a single original member remains on stage and they are <em>not</em> the lead vocalist, the score is hard-capped at 25%.</li>
+          <li><strong>Last Man Standing Cap (Max 25%):</strong> If only a single original member remains on stage and they are <em>not</em> the lead vocalist, the final score is hard-capped at 25%.</li>
           <li><strong>The Ghost Ship Rule (0%):</strong> If a band is retired or disbanded and 0 original members are currently touring under that name, the purity score evaluates to 0%.</li>
         </ul>
       </div>
@@ -115,13 +115,13 @@
       </div>
 
       <div style="text-align: center; margin-top: 30px;">
-        <a href="index.html" class="nav-btn">← Back to Audit Search</a>
+        <a href="index.html" class="nav-btn">&larr; Back to Audit Search</a>
       </div>
     </div>
   </main>
 
   <footer>
-    <p>BandStamp &copy; 2026 | <a href="index.html">Audit Tool</a> | <a href="https://github.com/varioni" target="_blank" rel="noopener">Made with &#10084;&#65039; by varioni</a></p>
+    <p>Made with &#10084;&#65039; by <a href="https://github.com/varioni" target="_blank" rel="noopener">varioni</a></p>
   </footer>
 
 </body>
