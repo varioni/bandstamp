@@ -7,11 +7,11 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="navbar">
-    <div class="logo-container">
+  <header>
+    <a href="index.html" class="brand">
       <img src="logo.png" alt="BandStamp Logo" class="logo" style="width: 40px;" />
       <span class="brand-title">BandStamp</span>
-    </div>
+    </a>
     <nav>
       <a href="index.html" class="active">Audit</a>
       <a href="about.html">About</a>
@@ -21,27 +21,28 @@
   <main class="container">
     <section class="hero">
       <h1>BandStamp Verification</h1>
-      <p>Evaluate the original lineup ratio for touring music acts before buying tickets.</p>
-      
-      <form id="search-form" class="search-box">
+      <p>Evaluate the original member ratio for touring bands before buying tickets.</p>
+
+      <form id="search-form" class="search-form">
         <input 
           type="text" 
           id="artist-input" 
-          placeholder="Enter band or artist name (e.g. Pixies, Smashing Pumpkins)..." 
+          class="search-input" 
+          placeholder="Enter band or artist name..." 
           required 
           autocomplete="off"
         />
-        <button type="submit" id="search-btn">Check Lineup</button>
+        <button type="submit" id="search-btn" class="btn-submit">Inspect Lineup</button>
       </form>
     </section>
 
     <div id="loading-spinner" class="spinner" style="display: none;"></div>
 
-    <section id="results-container" class="results-wrapper"></section>
+    <section id="results-container"></section>
   </main>
 
   <footer>
-    <p>&copy; 2026 BandStamp. Evaluating live music authenticity.</p>
+    <p>&copy; 2026 BandStamp. Evaluating live music lineup authenticity.</p>
   </footer>
 
   <script src="app.js"></script>
