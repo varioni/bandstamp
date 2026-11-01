@@ -7,68 +7,56 @@ module.exports = async function handler(req, res) {
     'X-CSRF-Token, X-Requested-With, Accept, Content-Type'
   );
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { bandName, critique } = req.body || {};
   if (!bandName || !critique) {
-    return res.status(400).json({ error: 'Band name and critique are required.' });
+    return res.status(400).json({ error: 'Band name and critique required.' });
   }
 
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-  const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  let KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  // Standardize Redis Key slug
+  if (KV_URL && KV_URL.endsWith('/')) KV_URL = KV_URL.slice(0, -1);
   const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
 
-  // 1. Purge existing cache entry in Upstash Redis
+  // Delete cache key asynchronously
   if (KV_URL && KV_TOKEN) {
-    try {
-      await fetch(`${KV_URL}/del/${cacheKey}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-      });
-    } catch (e) {
-      console.warn("Upstash cache purge error:", e.message);
-    }
+    fetch(KV_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(["DEL", cacheKey])
+    }).catch(e => console.warn("Cache delete error:", e.message));
   }
 
   if (!OPENROUTER_API_KEY) {
-    return res.status(500).json({ error: 'OPENROUTER_API_KEY environment variable is missing.' });
+    return res.status(500).json({ error: 'OPENROUTER_API_KEY missing on Vercel.' });
   }
 
   const systemInstruction = `
-    You are the official lead inspector for BandStamp (bandstamp.com). Conduct a live search to re-audit the requested band based on user feedback.
+    You are BandStamp lead inspector. Live search & re-audit ${bandName} using user critique: "${critique}".
+    Fact-check this critique via live search. Adjust baseline_members, touring_members_present, or is_currently_touring if valid.
+    NO numeric percentages or math inside text summary.
 
-    CRITICAL RE-AUDIT INSTRUCTIONS:
-    - User Critique: "${critique}".
-    - Perform a live web search to fact-check this critique. If valid, adjust baseline_members, touring_members_present, or is_currently_touring accordingly.
-    - Standard BandStamp Audit Rules:
-      1. DEBUT & BREAKTHROUGH BASELINE: Default to debut album core members (e.g. Rolling Stones = Jagger, Richards, Jones, Wyman, Watts). Exception for classic defining rosters (Nirvana = Cobain, Novoselic, Grohl; Deep Purple Mark II = Gillan, Blackmore, Glover, Lord, Paice).
-      2. SOLO MASTERMIND EXCEPTION: Solo auteur projects (QOTSA, Foo Fighters, NIN, Tame Impala) baseline as EXACTLY 1 sole founder.
-      3. HARD CROSS-CHECK MANDATE: Any baseline member mentioned as deceased, missing, or sitting out MUST be present in baseline_members and ABSENT from touring_members_present.
-      4. ACTIVE TOUR DATE & MONIKER VERIFICATION: Verify active 2025/2026 tour dates under this exact band name. Defunct/disbanded bands must have is_currently_touring set to FALSE and touring_members_present set to [].
-    - DO NOT write raw percentage figures or math strings in the summary text.
-
-    Return ONLY valid JSON:
+    Return ONLY JSON:
     {
-      "band_name": "Standardized Band Name",
+      "band_name": "Standardized Name",
       "debut_album": "Landmark Era Title",
       "baseline_members": ["Member 1", "Member 2"],
       "touring_members_present": [],
-      "frontman_name": "Frontman Name",
+      "frontman_name": "Frontman",
       "frontman_present": false,
       "is_currently_touring": false,
-      "editorial_summary": "Witty audit blurb acknowledging the re-verified lineup..."
+      "editorial_summary": "Witty audit blurb..."
     }
   `;
 
   try {
+    const aiController = new AbortController();
+    const aiTimer = setTimeout(() => aiController.abort(), 6500);
+
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -81,13 +69,15 @@ module.exports = async function handler(req, res) {
         model: "perplexity/sonar",
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Search the web and re-audit lineup for ${bandName} incorporating critique: "${critique}"` }
+          { role: "user", content: `Re-audit ${bandName} incorporating critique: "${critique}"` }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 600,
+        max_tokens: 350,
         temperature: 0.0
-      })
+      }),
+      signal: aiController.signal
     });
+    clearTimeout(aiTimer);
 
     if (!response.ok) {
       const errText = await response.text();
@@ -101,13 +91,9 @@ module.exports = async function handler(req, res) {
 
     const data = JSON.parse(textOutput);
 
-    // Deterministic Math in JS
     const baselineList = data.baseline_members || [];
     let touringList = data.touring_members_present || [];
-
-    if (data.is_currently_touring === false) {
-      touringList = [];
-    }
+    if (data.is_currently_touring === false) touringList = [];
 
     const totalBase = baselineList.length || 1;
     const presentBase = touringList.length;
@@ -125,19 +111,12 @@ module.exports = async function handler(req, res) {
 
     finalScore = Math.max(0, Math.min(100, finalScore));
 
-    let tier_label = "";
-    let badge_type = "";
-    if (finalScore === 100) {
-      tier_label = "Tier 1: Unbroken Circle"; badge_type = "gold";
-    } else if (finalScore >= 75) {
-      tier_label = "Tier 2: Near-Mint Vintage"; badge_type = "green";
-    } else if (finalScore >= 50) {
-      tier_label = "Tier 3: Co-Founder Equity"; badge_type = "yellow";
-    } else if (finalScore >= 25) {
-      tier_label = "Tier 4: Solo Project in Disguise"; badge_type = "orange";
-    } else {
-      tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; badge_type = "red";
-    }
+    let tier_label = "", badge_type = "";
+    if (finalScore === 100) { tier_label = "Tier 1: Unbroken Circle"; badge_type = "gold"; }
+    else if (finalScore >= 75) { tier_label = "Tier 2: Near-Mint Vintage"; badge_type = "green"; }
+    else if (finalScore >= 50) { tier_label = "Tier 3: Co-Founder Equity"; badge_type = "yellow"; }
+    else if (finalScore >= 25) { tier_label = "Tier 4: Solo Project in Disguise"; badge_type = "orange"; }
+    else { tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; badge_type = "red"; }
 
     const summary = data.editorial_summary || `Re-audited ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`;
 
@@ -150,16 +129,13 @@ module.exports = async function handler(req, res) {
       summary: summary
     };
 
-    // Save Updated Result to Upstash Redis
     if (KV_URL && KV_TOKEN) {
-      try {
-        const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
-        await fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}/EX/${ttlSeconds}`, {
-          headers: { Authorization: `Bearer ${KV_TOKEN}` }
-        });
-      } catch (e) {
-        console.warn("Upstash cache re-write error:", e.message);
-      }
+      const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
+      fetch(KV_URL, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(["SET", cacheKey, JSON.stringify(resultPayload), "EX", ttlSeconds])
+      }).catch(e => console.warn("Redis re-write warning:", e.message));
     }
 
     return res.status(200).json({ ...resultPayload, reaudited: true });
