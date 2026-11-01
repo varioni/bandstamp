@@ -1,60 +1,66 @@
-// BandStamp - Main Application Controller
+// BandStamp Front-End Controller - Fixed Non-Freezing Implementation
 document.addEventListener('DOMContentLoaded', () => {
   const searchForm = document.getElementById('search-form');
   const artistInput = document.getElementById('artist-input');
   const resultsContainer = document.getElementById('results-container');
   const loadingSpinner = document.getElementById('loading-spinner');
+  const searchBtn = document.getElementById('search-btn');
 
-  let currentAbortController = null;
   let isProcessing = false;
+  let activeAbortController = null;
 
   if (!searchForm || !artistInput) return;
 
   searchForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+
     const query = artistInput.value.trim();
     if (!query || isProcessing) return;
 
-    await performAudit(query);
+    await runAudit(query);
   });
 
-  async function performAudit(artistName) {
-    // Abort previous inflight request to prevent stacked async loops
-    if (currentAbortController) {
-      currentAbortController.abort();
+  async function runAudit(artistName) {
+    // Abort any inflight API call to avoid stacked async loops
+    if (activeAbortController) {
+      activeAbortController.abort();
     }
-    currentAbortController = new AbortController();
+    activeAbortController = new AbortController();
 
     isProcessing = true;
-    toggleLoading(true);
+    setLoadingState(true);
     clearResults();
 
     try {
       const response = await fetch(`/api/audit?artist=${encodeURIComponent(artistName)}`, {
-        signal: currentAbortController.signal,
+        signal: activeAbortController.signal,
         headers: { 'Accept': 'application/json' }
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Server error (${response.status})`);
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.error || `HTTP error ${response.status}`);
       }
 
       const data = await response.json();
-      renderAuditResult(data);
+      renderResults(data);
     } catch (error) {
       if (error.name === 'AbortError') return;
-      renderError(error.message || 'An error occurred while analyzing the band lineup.');
+      renderError(error.message || 'Unable to retrieve lineup audit data.');
     } finally {
       isProcessing = false;
-      toggleLoading(false);
-      currentAbortController = null;
+      setLoadingState(false);
+      activeAbortController = null;
     }
   }
 
-  function toggleLoading(isLoading) {
+  function setLoadingState(isLoading) {
     if (loadingSpinner) {
       loadingSpinner.style.display = isLoading ? 'block' : 'none';
+    }
+    if (searchBtn) {
+      searchBtn.disabled = isLoading;
+      searchBtn.style.opacity = isLoading ? '0.6' : '1';
     }
   }
 
@@ -64,33 +70,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function renderAuditResult(data) {
+  function renderResults(data) {
     if (!resultsContainer) return;
 
     const ratio = Number(data.originalRatio || 0);
-    const stampClass = ratio >= 0.75 ? 'stamp-gold' : ratio >= 0.5 ? 'stamp-silver' : 'stamp-warning';
-    const stampLabel = ratio >= 0.75 ? 'AUTHENTIC LINEUP' : ratio >= 0.5 ? 'PARTIAL ORIGINAL' : 'TRIBUTE / RECONSTITUTED';
+    let stampClass = 'stamp-amber';
+    let stampText = 'PARTIAL LINEUP';
+
+    if (ratio >= 0.75) {
+      stampClass = 'stamp-green';
+      stampText = 'AUTHENTIC LINEUP';
+    } else if (ratio < 0.5) {
+      stampClass = 'stamp-red';
+      stampText = 'TRIBUTE / RECONSTITUTED';
+    }
+
+    const percentage = Math.round(ratio * 100);
+    const originalList = (data.originalMembers || [])
+      .map(m => `<li>${escapeHtml(m)}</li>`)
+      .join('') || '<li>No data available</li>';
+
+    const touringList = (data.touringMembers || [])
+      .map(m => `<li>${escapeHtml(m)}</li>`)
+      .join('') || '<li>No data available</li>';
 
     resultsContainer.innerHTML = `
-      <div class="card">
-        <h2>${escapeHtml(data.artist || 'Unknown Artist')}</h2>
-        <div class="stamp-badge ${stampClass}">
-          <span>${stampLabel}</span>
-          <strong>${Math.round(ratio * 100)}% Original Members</strong>
+      <div class="result-card">
+        <h2>${escapeHtml(data.artist || 'Artist')}</h2>
+        <div class="stamp-container ${stampClass}">
+          ${stampText} — ${percentage}% ORIGINAL
         </div>
-        <p class="summary">${escapeHtml(data.summary || 'Lineup evaluation complete.')}</p>
+        <p>${escapeHtml(data.summary || 'Lineup evaluation completed.')}</p>
         <div class="lineup-grid">
-          <div class="column">
-            <h3>Classic / Original Era</h3>
-            <ul>
-              ${(data.originalMembers || []).map(member => `<li>${escapeHtml(member)}</li>`).join('') || '<li>Data unavailable</li>'}
-            </ul>
+          <div class="lineup-column">
+            <h3>Original / Classic Members</h3>
+            <ul class="lineup-list">${originalList}</ul>
           </div>
-          <div class="column">
+          <div class="lineup-column">
             <h3>Current Touring Roster</h3>
-            <ul>
-              ${(data.touringMembers || []).map(member => `<li>${escapeHtml(member)}</li>`).join('') || '<li>Data unavailable</li>'}
-            </ul>
+            <ul class="lineup-list">${touringList}</ul>
           </div>
         </div>
       </div>
@@ -100,8 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderError(message) {
     if (!resultsContainer) return;
     resultsContainer.innerHTML = `
-      <div class="card error-card">
-        <p><strong>Error:</strong> ${escapeHtml(message)}</p>
+      <div class="result-card" style="border-color: #991b1b;">
+        <p style="color: #991b1b;"><strong>Error:</strong> ${escapeHtml(message)}</p>
       </div>
     `;
   }
