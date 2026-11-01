@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About & Audit Logic - BandStamp</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Special+Elite&display=swap" rel="stylesheet">
+  <style>
+    .about-container {
+      background: #ffffff;
+      border: 1px solid #d4c8b9;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 8px 30px rgba(43, 40, 35, 0.08);
+      margin-bottom: 30px;
+    }
+
+    .about-section {
+      margin-bottom: 25px;
+    }
+
+    .about-section h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      color: #8b0000;
+      border-bottom: 2px solid #f4f1ea;
+      padding-bottom: 6px;
+      margin-top: 0;
+      letter-spacing: 1px;
+    }
+
+    .about-section p, .about-section li {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: #333;
+    }
+
+    .rule-box {
+      background: #faf8f5;
+      border-left: 4px solid #8b0000;
+      padding: 12px 18px;
+      margin: 15px 0;
+      border-radius: 0 6px 6px 0;
+    }
+
+    .nav-btn {
+      display: inline-block;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.2rem;
+      color: #ffffff;
+      background-color: #8b0000;
+      padding: 10px 20px;
+      border-radius: 6px;
+      text-decoration: none;
+      letter-spacing: 1px;
+      transition: background-color 0.15s ease;
+    }
+
+    .nav-btn:hover {
+      background-color: #9d0a0a;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-container">
+      <a href="index.html">
+        <img src="logo.png" alt="BandStamp Logo" class="site-logo">
+      </a>
+      <h1 class="brand-title">BANDSTAMP</h1>
+      <p class="tagline">Lineup Purity Audit for Live Music</p>
+    </div>
+  </header>
+
+  <main>
+    <div class="about-container">
+      <div class="about-section">
+        <h2>The Core Debate: What Defines an "Original Member"?</h2>
+        <p>
+          Lineup history in rock 'n' roll is messy. Bands replace drummers before their first tour, bring in studio session players, or add legendary long-tenured members decades down the road. 
+        </p>
+        <p>
+          To make BandStamp deterministic and fair, we anchor our baseline on one definitive milestone: <strong>The core lineup credited on the band's landmark debut studio album</strong>.
+        </p>
+        <div class="rule-box">
+          <strong>Why the Debut Album?</strong> While fan-favorite members often join later (e.g., Ronnie Wood joining The Rolling Stones in 1975, or Rick Fenn joining 10cc in 1976), those musicians joined an already established corporate entity. The debut album baseline honors the founders who took the initial risk together.
+        </div>
+      </div>
+
+      <div class="about-section">
+        <h2>The Scoring Formula</h2>
+        <p>Once the debut baseline is set, BandStamp inspects who is actually on stage for current tour dates and applies deterministic mathematical rules:</p>
+
+        <ul>
+          <li><strong>Base Score:</strong> <code>(Present Debut Baseline Members / Total Debut Baseline Members) × 100</code></li>
+          <li><strong>The Frontman Tax (-30%):</strong> Iconic lead vocalists carry disproportionate brand identity. If the primary lead singer is missing or replaced, an automatic 30% penalty is deducted from the base score.</li>
+          <li><strong>Last Man Standing Cap (Max 25%):</strong> If only a single original member remains on stage and they are <em>not</em> the lead vocalist, the score is hard-capped at 25%.</li>
+          <li><strong>The Ghost Ship Rule (0%):</strong> If a band is retired or disbanded and 0 original members are currently touring under that name, the purity score evaluates to 0%.</li>
+        </ul>
+      </div>
+
+      <div class="about-section">
+        <h2>The 5 Inspection Tiers</h2>
+        <ul>
+          <li><strong>100% | Tier 1: Unbroken Circle</strong> — Original founding lineup fully intact on stage.</li>
+          <li><strong>75%–99% | Tier 2: Near-Mint Vintage</strong> — Core members present with minimal lineup substitutions.</li>
+          <li><strong>50%–74% | Tier 3: Co-Founder Equity</strong> — At least half of the original core roster remains active.</li>
+          <li><strong>25%–49% | Tier 4: Solo Project in Disguise</strong> — Heavy member loss or replaced iconic lead frontman.</li>
+          <li><strong>0%–24% | Tier 5: The Ghost Ship (Zombie Franchise)</strong> — No core original members or single non-singer remaining.</li>
+        </ul>
+      </div>
+
+      <div style="text-align: center; margin-top: 30px;">
+        <a href="index.html" class="nav-btn">← Back to Audit Search</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>BandStamp &copy; 2026 | <a href="index.html">Audit Tool</a> | <a href="https://github.com/varioni" target="_blank" rel="noopener">Made with &#10084;&#65039; by varioni</a></p>
+  </footer>
+
+</body>
+</html>
