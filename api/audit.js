@@ -16,22 +16,28 @@ module.exports = async function handler(req, res) {
   if (!bandName) return res.status(400).json({ error: 'Band name is required' });
 
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+  
+  // REST API URL Sanitization: Ignore rediss:// protocol URLs
   let KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  if (KV_URL && KV_URL.endsWith('/')) KV_URL = KV_URL.slice(0, -1);
+  if (KV_URL && !KV_URL.startsWith('http')) {
+    KV_URL = null;
+  }
+  if (KV_URL && KV_URL.endsWith('/')) {
+    KV_URL = KV_URL.slice(0, -1);
+  }
+
   const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
 
-  // Fast Redis Cache Check (<400ms abort guard)
+  // 1. Fast Redis Cache Read (<500ms timeout)
   if (KV_URL && KV_TOKEN) {
     try {
       const kvController = new AbortController();
-      const kvTimer = setTimeout(() => kvController.abort(), 400);
+      const kvTimer = setTimeout(() => kvController.abort(), 500);
 
-      const cacheRes = await fetch(KV_URL, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(["GET", cacheKey]),
+      const cacheRes = await fetch(`${KV_URL}/get/${cacheKey}`, {
+        headers: { Authorization: `Bearer ${KV_TOKEN}` },
         signal: kvController.signal
       });
       clearTimeout(kvTimer);
@@ -49,18 +55,18 @@ module.exports = async function handler(req, res) {
   }
 
   if (!OPENROUTER_API_KEY) {
-    return res.status(500).json({ error: 'OPENROUTER_API_KEY missing on Vercel.' });
+    return res.status(500).json({ error: 'OPENROUTER_API_KEY missing in Vercel environment variables.' });
   }
 
   const systemInstruction = `
-    You are BandStamp lead inspector. Do a fast live search for 2025/2026 concert dates & touring roster for: ${bandName}.
+    You are BandStamp lead inspector. Search the web for active 2025/2026 tour dates and touring lineup for: ${bandName}.
 
     RULES:
-    1. Active Tour Verification: Check for 2025/2026 live tour dates under exact band name. If defunct/disbanded/dormant (e.g. Nirvana, R.E.M., Butthole Surfers), set is_currently_touring to FALSE and touring_members_present to [].
-    2. Mortality Mandate: Deceased members (Kurt Cobain, Jon Lord, Teresa Taylor) CANNOT be in touring_members_present.
-    3. Baseline: Debut album core members. Exception for defining classic rosters (Nirvana = Cobain/Novoselic/Grohl; Deep Purple Mark II = Gillan/Blackmore/Glover/Lord/Paice). Solo auteur projects (QOTSA, Foo Fighters, NIN) baseline as 1 founder.
+    1. Active Tour Verification: Check if band has active 2025/2026 tour dates under this exact name. If defunct/disbanded/dormant (Nirvana, R.E.M., Butthole Surfers), set is_currently_touring to FALSE and touring_members_present to [].
+    2. Mortality Mandate: Deceased members (Kurt Cobain, Jon Lord, Teresa Taylor) CANNOT be in touring_members_present!
+    3. Baseline: Debut album core members. Exception for classic defining rosters (Nirvana = Cobain/Novoselic/Grohl; Deep Purple Mark II = Gillan/Blackmore/Glover/Lord/Paice). Solo auteur projects (QOTSA, Foo Fighters, NIN) baseline as 1 founder.
     4. Hard Cross-Check: Missing/deceased members in narrative MUST be in baseline_members and ABSENT from touring_members_present.
-    5. NO numeric percentages or math inside editorial_summary text.
+    5. DO NOT write raw percentage figures or math inside editorial_summary text.
 
     Return ONLY JSON:
     {
@@ -76,9 +82,8 @@ module.exports = async function handler(req, res) {
   `;
 
   try {
-    // 6.5s Abort Controller to prevent Vercel 10s cutoff
     const aiController = new AbortController();
-    const aiTimer = setTimeout(() => aiController.abort(), 6500);
+    const aiTimer = setTimeout(() => aiController.abort(), 7500);
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -92,10 +97,10 @@ module.exports = async function handler(req, res) {
         model: "perplexity/sonar",
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Live search 2025/2026 tour dates and active members for: ${bandName}` }
+          { role: "user", content: `Search current 2025/2026 tour dates and lineup for: ${bandName}` }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 350,
+        max_tokens: 400,
         temperature: 0.0
       }),
       signal: aiController.signal
@@ -153,13 +158,11 @@ module.exports = async function handler(req, res) {
       summary: summary
     };
 
-    // Save to Redis asynchronously
+    // Asynchronous Redis write via standard REST endpoint
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
-      fetch(KV_URL, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(["SET", cacheKey, JSON.stringify(resultPayload), "EX", ttlSeconds])
+      fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
+        headers: { Authorization: `Bearer ${KV_TOKEN}` }
       }).catch(e => console.warn("Redis write warning:", e.message));
     }
 
