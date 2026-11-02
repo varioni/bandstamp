@@ -81,6 +81,7 @@ module.exports = async function handler(req, res) {
        - Paragraph 3: 2 sentences of sharp, energetic Pitchfork-style verdict.
 
     4. STRICT FORBIDDEN ITEMS:
+       - NEVER mention that this is an AI response, search result, or re-audit.
        - NEVER list venue names, city lists, or date itineraries.
        - NEVER output raw literal line breaks inside JSON strings. Use \\n\\n instead.
        - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
@@ -226,7 +227,9 @@ module.exports = async function handler(req, res) {
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
       fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
+        headers: { Authorization: `Bearer ${KV_TOKEN}` },
+        method: 'POST',
+        body: JSON.stringify(resultPayload)
       }).catch(e => console.warn("Redis write warning:", e.message));
     }
 
