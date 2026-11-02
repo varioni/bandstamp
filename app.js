@@ -113,28 +113,39 @@ document.addEventListener('DOMContentLoaded', () => {
       stampOverlay.className = `stamp ${data.badge_type || 'gold'}`;
     }
 
-    let summaryText = data.summary || '';
+    // Clean up summary string & format bold tags
+    let rawText = data.summary || '';
+    rawText = rawText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    rawText = rawText.replace(/(?:<strong>)?On stage:(?:<\/strong>)?/gi, '<strong>On stage:</strong>');
+    rawText = rawText.replace(/(?:<strong>)?Absent\/Missing:(?:<\/strong>)?/gi, '<strong>Absent/Missing:</strong>');
 
-    // Convert markdown bold tags
-    summaryText = summaryText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // Normalize headers
-    summaryText = summaryText.replace(/(?:<strong>)?On stage:(?:<\/strong>)?/gi, '<strong>On stage:</strong>');
-    summaryText = summaryText.replace(/(?:<strong>)?Absent\/Missing:(?:<\/strong>)?/gi, '<strong>Absent/Missing:</strong>');
+    // Ensure Absent/Missing starts on a new line break if attached to On stage line
+    rawText = rawText.replace(/([^\n])\s*<strong>Absent\/Missing:<\/strong>/gi, '$1\n\n<strong>Absent/Missing:</strong>');
 
-    // Force double break before Absent/Missing if attached directly
-    summaryText = summaryText.replace(/(\.|\))\s*<strong>Absent\/Missing:<\/strong>/gi, '$1\\n\\n<strong>Absent/Missing:</strong>');
+    // Normalize all escaped or literal line breaks (\r\n, \n, \\n) into SPLIT_MARKER
+    let normalized = rawText
+      .replace(/\\n/g, '\n')
+      .replace(/\r\n/g, '\n')
+      .replace(/\n+/g, '===PARAGRAPH===');
 
-    // Split text into paragraphs on double line-breaks OR single line-breaks
-    const paragraphBlocks = summaryText
-      .split(/(?:\\n\\n|\n\n|\\n|\n)/)
+    const paragraphs = normalized
+      .split('===PARAGRAPH===')
       .map(p => p.trim())
       .filter(p => p.length > 0);
 
-    auditSummary.innerHTML = paragraphBlocks
-      .map(p => `<p style="margin-bottom: 1.2rem;">${p}</p>`)
+    // Build HTML paragraphs with explicit inline bottom margin spacing
+    auditSummary.innerHTML = paragraphs
+      .map(p => `<p style="margin-bottom: 1.2rem; line-height: 1.6;">${p}</p>`)
       .join('');
 
     resultCard.classList.remove('hidden');
+  }
+
+  // Auto-run search if ?band=Name URL query parameter exists
+  const urlParams = new URLSearchParams(window.location.search);
+  const bandParam = urlParams.get('band');
+  if (bandParam) {
+    bandInput.value = bandParam;
+    handleSearch();
   }
 });
