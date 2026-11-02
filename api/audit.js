@@ -71,17 +71,18 @@ module.exports = async function handler(req, res) {
     3. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
 
        IF IS_CURRENTLY_TOURING = FALSE (SHORT 1-2 PARAGRAPH SUMMARY):
-       - Do NOT list "<strong>On stage:</strong>" or "<strong>Absent/Missing:</strong>" rosters.
-       - Paragraph 1 (1-2 short sentences): Confirm there are no upcoming tour dates for the band. Mention briefly if surviving founders perform solo or if the project is permanently defunct.
+       - Do NOT list "On stage:" or "Absent/Missing:" rosters.
+       - Paragraph 1 (1 short sentence): Confirm there are no upcoming tour dates for the band. Mention briefly if surviving founders perform solo or if the project is permanently defunct.
        - Paragraph 2 (1 short sentence): Sharp, punchy Pitchfork closing on why the live era is over.
 
        IF IS_CURRENTLY_TOURING = TRUE (MANDATORY 3 PARAGRAPHS SEPARATED BY \\n\\n):
-       - Paragraph 1: State upcoming tour schedule context.
-       - Paragraph 2 (ROSTER BREAKDOWN WITH ANNOTATED ROLES AND LITERAL HTML BOLD TAGS):
-         "<strong>On stage:</strong> [Full Name (Instrument - Role)] joined by [Full Name (Instrument - Replacement)]. <strong>Absent/Missing:</strong> [Full Name (Instrument - Role) OR 'None']."
+       - Paragraph 1: 1-2 short sentences max confirming active tour status (e.g., region or tour name). STRICTLY FORBIDDEN: Do NOT list cities, venue names, or date itineraries.
+       - Paragraph 2 (ROSTER BREAKDOWN WITH ANNOTATED ROLES):
+         "**On stage:** [Full Name (Instrument - Role)] joined by [Full Name (Instrument - Replacement)].\\n\\n**Absent/Missing:** [Full Name (Instrument - Role) OR 'None']."
        - Paragraph 3: 2 sentences of direct, energetic Pitchfork-style verdict.
 
     4. STRICT FORBIDDEN ITEMS:
+       - NEVER list venue names, city lists, or date itineraries.
        - NEVER output raw literal line breaks inside JSON strings. Use \\n\\n instead.
        - NEVER write florid poetic clichés ("corporate chassis humming", "real alchemy", "museum-piece cosplay", "database ghosts").
        - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
@@ -95,7 +96,7 @@ module.exports = async function handler(req, res) {
       "frontman_name": "Original Lead Singer",
       "frontman_present": true,
       "is_currently_touring": true,
-      "editorial_summary": "Short paragraph 1\\n\\n<strong>On stage:</strong> ... <strong>Absent/Missing:</strong> ...\\n\\nShort paragraph 3..."
+      "editorial_summary": "Short paragraph 1\\n\\n**On stage:** ...\\n\\n**Absent/Missing:** ...\\n\\nShort paragraph 3..."
     }
   `;
 
@@ -226,10 +227,13 @@ module.exports = async function handler(req, res) {
 
     let summary = (data.editorial_summary || `Auditing ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
 
-    // Fallback: Ensure On stage: and Absent/Missing: headers are wrapped in <strong> tags if AI omitted them
+    // Convert markdown bold **text** to <strong>text</strong>
+    summary = summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    // Robust fallback: Force explicit strong tags for headers if still plain text
     summary = summary
-      .replace(/On stage:/gi, '<strong>On stage:</strong>')
-      .replace(/Absent\/Missing:/gi, '<strong>Absent/Missing:</strong>');
+      .replace(/(?:<strong>)?On stage:(?:<\/strong>)?/gi, '<strong>On stage:</strong>')
+      .replace(/(?:<strong>)?Absent\/Missing:(?:<\/strong>)?/gi, '<strong>Absent/Missing:</strong>');
 
     const resultPayload = {
       band_name: data.band_name || bandName,
