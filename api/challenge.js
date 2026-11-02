@@ -53,10 +53,10 @@ module.exports = async function handler(req, res) {
     {
       "band_name": "Standardized Name",
       "debut_album": "Landmark Album/Era",
-      "baseline_members": ["Dexter Holland", "Noodles", "Greg K."],
-      "touring_members_present": ["Dexter Holland"],
+      "baseline_members": ["Member 1", "Member 2"],
+      "touring_members_present": ["Member 1"],
       "zero_classic_members_on_stage": false,
-      "frontman_name": "Dexter Holland",
+      "frontman_name": "Lead Singer",
       "frontman_present": true,
       "is_currently_touring": true,
       "editorial_summary": "Short paragraph 1\\n\\n**On stage:** ...\\n\\n**Absent/Missing:** ...\\n\\nShort paragraph 3..."
@@ -206,11 +206,25 @@ module.exports = async function handler(req, res) {
     const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
-      fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
+
+      // Await cached payload write
+      await fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
         headers: { Authorization: `Bearer ${KV_TOKEN}` },
         method: 'POST',
         body: JSON.stringify(resultPayload)
       }).catch(e => console.warn("Redis write warning:", e.message));
+
+      // Await active_bands index set write
+      if (data.is_currently_touring) {
+        await fetch(`${KV_URL}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${KV_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(['SADD', 'active_bands', cacheKey])
+        }).catch(e => console.warn("Redis index error:", e.message));
+      }
     }
 
     return res.status(200).json({ ...resultPayload, cached: false });
