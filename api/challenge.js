@@ -32,12 +32,9 @@ module.exports = async function handler(req, res) {
 
     STRICT RE-AUDIT RULES:
     1. TONE: Energetic, witty, cynical Pitchfork rock journalism. Authoritative and punchy.
-    2. NO CITATIONS: NEVER include bracketed citations like [1], [2], [8], or reference URLs/sources.
-    3. MEMBER AUDIT MANDATE: 
-       - Re-evaluate baseline classic members vs. physical stage performers based on user evidence and current facts.
-       - Explicitly name who is physically on stage vs. who is absent/replaced.
-       - Replacement musicians are NOT baseline members and CANNOT count toward touring_members_present.
-
+    2. FORBIDDEN WORDS: NEVER write "database ghosts", "data entries", "system audit", "AI", or bracketed citations like [1], [2].
+    3. INACTIVE / DEFUNCT BANDS: If the band is not touring, explicitly state they have no upcoming tour dates. Name surviving core members and where they are now, honoring deceased founders without clinical AI jargon.
+    
     4. EDITORIAL SUMMARY FORMAT (3 to 5 full sentences):
        - Sentence 1: Updated tour status and context.
        - Sentences 2-3: Explicitly name who is physically on stage vs. who is absent/replaced.
@@ -54,7 +51,7 @@ module.exports = async function handler(req, res) {
       "frontman_name": "Original Lead Singer",
       "frontman_present": false,
       "is_currently_touring": true,
-      "editorial_summary": "3 to 5 sentence energetic Pitchfork-style paragraph with explicit member names and zero bracketed citations..."
+      "editorial_summary": "3 to 5 sentence energetic Pitchfork-style paragraph with zero citations or AI jargon..."
     }
   `;
 
@@ -119,11 +116,26 @@ module.exports = async function handler(req, res) {
     finalScore = Math.max(0, Math.min(100, finalScore));
 
     let tier_label = "", badge_type = "";
-    if (finalScore === 100) { tier_label = "Tier 1: Unbroken Circle"; badge_type = "gold"; }
-    else if (finalScore >= 75) { tier_label = "Tier 2: Near-Mint Vintage"; badge_type = "green"; }
-    else if (finalScore >= 50) { tier_label = "Tier 3: Co-Founder Equity"; badge_type = "yellow"; }
-    else if (finalScore >= 25) { tier_label = "Tier 4: Solo Project in Disguise"; badge_type = "orange"; }
-    else { tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; badge_type = "red"; }
+
+    if (data.is_currently_touring === false) {
+      tier_label = "Currently Not Touring";
+      badge_type = "black";
+    } else if (finalScore === 100) { 
+      tier_label = "Tier 1: Unbroken Circle"; 
+      badge_type = "gold"; 
+    } else if (finalScore >= 75) { 
+      tier_label = "Tier 2: Near-Mint Vintage"; 
+      badge_type = "green"; 
+    } else if (finalScore >= 50) { 
+      tier_label = "Tier 3: Co-Founder Equity"; 
+      badge_type = "yellow"; 
+    } else if (finalScore >= 25) { 
+      tier_label = "Tier 4: Solo Project in Disguise"; 
+      badge_type = "orange"; 
+    } else { 
+      tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; 
+      badge_type = "red"; 
+    }
 
     let summary = (data.editorial_summary || `Updated audit for ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
 
