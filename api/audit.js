@@ -113,7 +113,7 @@ module.exports = async function handler(req, res) {
           { role: "system", content: systemInstruction },
           { role: "user", content: `Search active upcoming tour dates and live touring lineup for: ${bandName}` }
         ],
-        max_tokens: 500,
+        max_tokens: 800,
         temperature: 0.0
       }),
       signal: aiController.signal
@@ -134,7 +134,16 @@ module.exports = async function handler(req, res) {
 
     textOutput = textOutput.replace(/(\r\n|\n|\r)/g, "\\n");
 
-    const data = JSON.parse(textOutput);
+    let data;
+    try {
+      data = JSON.parse(textOutput);
+    } catch (parseErr) {
+      // Auto-repair truncated JSON strings if cut off mid-output
+      if (!textOutput.endsWith('"}') && !textOutput.endsWith('}')) {
+        textOutput += '"}' ;
+      }
+      data = JSON.parse(textOutput);
+    }
 
     const baselineList = data.baseline_members || [];
     let touringList = data.touring_members_present || [];
@@ -151,7 +160,7 @@ module.exports = async function handler(req, res) {
     } else if (presentBase === 1 && !data.frontman_present) {
       finalScore = 25;
     } else if (!data.frontman_present && presentBase > 1) {
-      finalScore -= 10; // Reduced from -30 to -10
+      finalScore -= 10;
     }
 
     finalScore = Math.max(0, Math.min(100, finalScore));
