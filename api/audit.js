@@ -54,23 +54,21 @@ module.exports = async function handler(req, res) {
 
   const systemInstruction = `
     You are BandStamp lead inspector—a sharp, energetic, Pitchfork-style rock music critic. 
-    Search the web for active/upcoming live tour dates and stage lineup for: ${bandName}.
+    Search the web for ACTIVE/UPCOMING future live tour dates for: ${bandName}.
 
-    STRICT AUDIT RULES:
-    1. TOUR CHECK: Search for upcoming/future live tour dates. If no future dates exist or the band is defunct/dormant, set is_currently_touring = false and touring_members_present = [].
+    STRICT TOUR DATE VERIFICATION RULE:
+    1. Check for upcoming/future tour dates scheduled on official ticketing sites or tour announcements.
+    2. If the band has completed their tour cycle, has no future tour dates announced, or is inactive/defunct, you MUST set is_currently_touring = false and touring_members_present = [].
     
-    2. MEMBER AUDIT MANDATE: 
-       - Identify classic breakthrough baseline members.
-       - Identify who among them is physically performing on stage.
-       - Replacement musicians are NOT baseline members and CANNOT count toward touring_members_present.
+    STRICT MEMBER AUDIT RULES:
+    - Identify classic breakthrough baseline members.
+    - If is_currently_touring = true, list which baseline members perform on stage.
+    - Replacement musicians are NOT baseline members and CANNOT count toward touring_members_present.
 
-    3. EDITORIAL SUMMARY TONE & FORMAT (3 to 5 full sentences):
-       - TONE: Energetic, witty, cynical Pitchfork rock journalism. Authoritative and punchy.
-       - FORBIDDEN WORDS: NEVER write "database ghosts", "data entries", "system audit", "AI", or bracketed citations like [1], [2].
-       - INACTIVE / DEFUNCT BANDS: If the band is not touring (e.g. Nirvana), explicitly state they have no upcoming tour dates. Name surviving core members (e.g. Dave Grohl, Krist Novoselic) and where they are now, honoring deceased founders (e.g. Kurt Cobain) without clinical AI jargon.
-       - ACTIVE BANDS: Name who is physically on stage vs. absent/replaced.
-
-    4. NO META-COMMENTARY OR MATH: Do NOT write "Audit note:", "Audit corrected:", or raw percentage figures inside editorial_summary text.
+    EDITORIAL SUMMARY TONE & FORMAT (3 to 5 full sentences):
+    - TONE: Energetic, witty, cynical Pitchfork rock journalism. Authoritative and punchy.
+    - FORBIDDEN WORDS: NEVER write "database ghosts", "data entries", "system audit", "AI", or bracketed citations like [1], [2].
+    - INACTIVE / COMPLETED TOURS: Explicitly state that the band currently has no upcoming tour dates announced on the live circuit.
 
     CRITICAL: Output MUST be valid raw JSON only:
     {
@@ -80,7 +78,7 @@ module.exports = async function handler(req, res) {
       "touring_members_present": [],
       "frontman_name": "Original Lead Singer",
       "frontman_present": false,
-      "is_currently_touring": true,
+      "is_currently_touring": false,
       "editorial_summary": "3 to 5 sentence energetic Pitchfork-style paragraph with zero citations or AI jargon..."
     }
   `;
@@ -102,7 +100,7 @@ module.exports = async function handler(req, res) {
         model: "perplexity/sonar",
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Search active upcoming tour dates and touring lineup for: ${bandName}` }
+          { role: "user", content: `Search for upcoming future tour dates and live lineup for: ${bandName}` }
         ],
         max_tokens: 500,
         temperature: 0.0
@@ -147,10 +145,10 @@ module.exports = async function handler(req, res) {
 
     let tier_label = "", badge_type = "";
 
-    // Handle Currently Not Touring / Inactive state
     if (data.is_currently_touring === false) {
       tier_label = "Currently Not Touring";
       badge_type = "black";
+      finalScore = 0;
     } else if (finalScore === 100) { 
       tier_label = "Tier 1: Unbroken Circle"; 
       badge_type = "gold"; 
