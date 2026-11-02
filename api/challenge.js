@@ -36,18 +36,17 @@ module.exports = async function handler(req, res) {
     2. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
        IF IS_CURRENTLY_TOURING = FALSE:
        - Do NOT list "**On stage:**" or "**Absent/Missing:**" rosters.
-       - Write 2 short paragraphs explaining that the band is not touring, where surviving founders are now, and a brief Pitchfork closing statement.
+       - Write 2 short paragraphs explaining that the band is not touring.
 
        IF IS_CURRENTLY_TOURING = TRUE:
        - Paragraph 1: 1-2 short sentences max confirming active tour status. STRICTLY FORBIDDEN: Do NOT list cities, venue names, or date itineraries.
-       - Paragraph 2 (ROSTER BREAKDOWN):
+       - Paragraph 2: Roster breakdown:
          "**On stage:** [Full Name (Instrument - Role)] joined by [Full Name (Instrument - Replacement)].\\n\\n**Absent/Missing:** [Full Name (Instrument - Role) OR 'None']."
        - Paragraph 3: 2 sentences of direct, energetic Pitchfork-style verdict.
 
     3. STRICT FORBIDDEN ITEMS:
        - NEVER list venue names, city lists, or date itineraries.
-       - NEVER output raw literal line breaks inside JSON strings. Use \\n\\n instead.
-       - NEVER write florid poetic clichés ("corporate chassis humming", "real alchemy", "museum-piece cosplay").
+       - NEVER write florid poetic clichés.
        - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
 
     CRITICAL: Output MUST be valid single-line raw JSON only without markdown formatting:
@@ -109,94 +108,4 @@ module.exports = async function handler(req, res) {
 
     let data;
     try {
-      data = JSON.parse(textOutput);
-    } catch (parseErr) {
-      if (!textOutput.endsWith('"}') && !textOutput.endsWith('}')) {
-        textOutput += '"}';
-      }
-      try {
-        data = JSON.parse(textOutput);
-      } catch (secondErr) {
-        data = {
-          band_name: bandName,
-          baseline_members: [],
-          touring_members_present: [],
-          frontman_present: true,
-          is_currently_touring: true,
-          editorial_summary: `Re-audit completed for ${bandName}.`
-        };
-      }
-    }
-
-    const baselineList = data.baseline_members || [];
-    let touringList = data.touring_members_present || [];
-    if (data.is_currently_touring === false) touringList = [];
-
-    const totalBase = baselineList.length || 1;
-    const presentBase = touringList.length;
-
-    let baseScore = Math.round((presentBase / totalBase) * 100);
-    let finalScore = baseScore;
-
-    if (presentBase === 0) {
-      finalScore = 0;
-    } else if (presentBase === 1 && !data.frontman_present) {
-      finalScore = 25;
-    } else if (!data.frontman_present && presentBase > 1) {
-      finalScore -= 10;
-    }
-
-    finalScore = Math.max(0, Math.min(100, finalScore));
-
-    let tier_label = "", badge_type = "";
-
-    if (data.is_currently_touring === false) {
-      tier_label = "Currently Not Touring";
-      badge_type = "black";
-      finalScore = 0;
-    } else if (finalScore === 100) { 
-      tier_label = "Tier 1: Unbroken Circle"; 
-      badge_type = "gold"; 
-    } else if (finalScore >= 75) { 
-      tier_label = "Tier 2: Near-Mint Vintage"; 
-      badge_type = "green"; 
-    } else if (finalScore >= 50) { 
-      tier_label = "Tier 3: Co-Founder Equity"; 
-      badge_type = "yellow"; 
-    } else if (finalScore >= 25) { 
-      tier_label = "Tier 4: Solo Project in Disguise"; 
-      badge_type = "orange"; 
-    } else { 
-      tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; 
-      badge_type = "red"; 
-    }
-
-    let summary = (data.editorial_summary || `Updated audit for ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
-
-    const resultPayload = {
-      band_name: data.band_name || bandName,
-      currently_touring: data.is_currently_touring,
-      calculated_score: finalScore,
-      tier_label: tier_label,
-      badge_type: badge_type,
-      summary: summary
-    };
-
-    const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
-    if (KV_URL && KV_TOKEN) {
-      const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
-      fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-      }).catch(e => console.warn("Redis write warning:", e.message));
-    }
-
-    return res.status(200).json({ ...resultPayload, cached: false });
-
-  } catch (err) {
-    if (aiTimer) clearTimeout(aiTimer);
-    if (err.name === 'AbortError') {
-      return res.status(504).json({ error: "Challenge evaluation timed out." });
-    }
-    return res.status(500).json({ error: `Server Exception: ${err.message}` });
-  }
-};
+      data
