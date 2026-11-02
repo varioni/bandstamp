@@ -28,7 +28,17 @@ document.addEventListener('DOMContentLoaded', () => {
     black: '#ffffff'
   };
 
-  // Load rotating audit ticker banner with color-coded score badges
+  // Helper function to shuffle array (Fisher-Yates)
+  function shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  // Load rotating audit ticker banner with randomized order and color-coded score badges
   async function loadTicker() {
     const track = document.getElementById('ticker-track');
     if (!track) return;
@@ -39,7 +49,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const bands = data.bands || [];
 
       if (bands.length > 0) {
-        const itemsHtml = bands.map(b => {
+        // Shuffle the band list for the ticker banner
+        const randomizedBands = shuffleArray(bands);
+
+        const itemsHtml = randomizedBands.map(b => {
           const badgeType = b.badge_type || 'gold';
           const scoreColor = tierColorMap[badgeType] || '#ffd700';
           
