@@ -35,11 +35,11 @@ module.exports = async function handler(req, res) {
 
     2. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
        IF IS_CURRENTLY_TOURING = FALSE:
-       - Do NOT list "**On stage:**" or "**Absent/Missing:**" rosters.
+       - Do NOT list "<strong>On stage:</strong>" or "<strong>Absent/Missing:</strong>" rosters.
        - Write 2 short paragraphs explaining that the band is not touring, where surviving founders are now, and a brief Pitchfork closing statement.
 
        IF IS_CURRENTLY_TOURING = TRUE:
-       - Write 3 structured paragraphs including explicit "**On stage:**" and "**Absent/Missing:**" role breakdowns and a 2-sentence verdict.
+       - Write 3 structured paragraphs including explicit "<strong>On stage:</strong>" and "<strong>Absent/Missing:</strong>" role breakdowns and a 2-sentence verdict.
 
     3. STRICT FORBIDDEN ITEMS:
        - NEVER output raw literal line breaks inside JSON strings. Use \\n\\n instead.
@@ -55,7 +55,7 @@ module.exports = async function handler(req, res) {
       "frontman_name": "Original Lead Singer",
       "frontman_present": false,
       "is_currently_touring": false,
-      "editorial_summary": "Short paragraph 1\\n\\n**On stage:** ... **Absent/Missing:** ...\\n\\nShort paragraph 3..."
+      "editorial_summary": "Short paragraph 1\\n\\n<strong>On stage:</strong> ... <strong>Absent/Missing:</strong> ...\\n\\nShort paragraph 3..."
     }
   `;
 
@@ -64,7 +64,9 @@ module.exports = async function handler(req, res) {
     const aiController = new AbortController();
     aiTimer = setTimeout(() => aiController.abort(), 20000);
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const openRouterEndpoint = "https://openrouter.ai/api/v1/chat/completions";
+
+    const response = await fetch(openRouterEndpoint, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
@@ -168,6 +170,10 @@ module.exports = async function handler(req, res) {
     }
 
     let summary = (data.editorial_summary || `Updated audit for ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
+
+    summary = summary
+      .replace(/On stage:/gi, '<strong>On stage:</strong>')
+      .replace(/Absent\/Missing:/gi, '<strong>Absent/Missing:</strong>');
 
     const resultPayload = {
       band_name: data.band_name || bandName,
