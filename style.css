@@ -396,3 +396,31 @@ footer a:hover {
 .challenge-box button:hover {
   background-color: #a00000;
 }
+
+.hidden {
+  display: none !important;
+}
+
+.challenge-actions {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #d1c7b7;
+  text-align: center;
+}
+
+.challenge-box {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.challenge-box textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 0.75rem;
+  font-family: inherit;
+  border: 2px solid #d1c7b7;
+  border-radius: 4px;
+  background-color: #faf8f5;
+}
