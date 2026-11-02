@@ -3,81 +3,76 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BandStamp - Lineup Purity Audit for Live Music</title>
-  <link rel="icon" type="image/png" href="logo.png">
-  <link rel="shortcut icon" href="logo.png">
+  <title>BandStamp - Live Band Lineup Authenticity Audit</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="container">
-    <!-- Hero Header -->
+
+  <!-- Rotating Live Audit Ticker Banner -->
+  <div class="ticker-banner" id="ticker-banner">
+    <div class="ticker-track" id="ticker-track">
+      <a href="index-list.html" class="ticker-item">★ Loading audited bands index...</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Centered Hero Brand Header -->
     <header class="hero-brand">
-      <img src="logo.png" alt="BandStamp Logo" class="main-logo" />
+      <a href="index.html">
+        <img src="logo.png" alt="BandStamp Logo" class="main-logo">
+      </a>
       <h1 class="brand-heading">BANDSTAMP</h1>
       <p class="tagline">Lineup Purity Audit for Live Music</p>
     </header>
 
-    <!-- Search Form -->
-    <form id="search-form" class="search-form">
-      <input 
-        type="text" 
-        id="band-input" 
-        class="search-input" 
-        placeholder="Enter band or artist name..." 
-        required 
-        autocomplete="off"
-      />
-      <button type="button" id="stamp-btn" class="btn-submit">Inspect Lineup</button>
-    </form>
+    <!-- Search Form Input -->
+    <section class="search-box">
+      <form id="search-form">
+        <input 
+          type="text" 
+          id="band-input" 
+          placeholder="Enter band or artist name..." 
+          autocomplete="off" 
+          required
+        >
+        <button type="submit" id="stamp-btn" class="btn-stamp">Inspect Lineup</button>
+      </form>
+    </section>
 
-    <!-- Loading Indicator -->
-    <div id="loading" class="spinner-container hidden">
+    <!-- Loading Spinner -->
+    <div id="loading" class="loading-spinner hidden">
       <div class="spinner"></div>
       <p>Auditing lineup...</p>
     </div>
 
-    <!-- Main Result Card -->
-    <div id="result-card" class="result-card hidden">
+    <!-- Audit Result Card -->
+    <section id="result-card" class="result-card hidden">
       <div class="card-header">
-        <h2 id="band-name-heading"></h2>
-        <span id="tier-badge" class="badge"></span>
+        <h2 id="band-name-heading">Band Name</h2>
+        <span id="tier-badge" class="tier-badge-text">Tier Label</span>
       </div>
 
       <div class="image-wrapper">
-        <img id="band-photo" src="" alt="Band Photo" />
+        <img id="band-photo" src="" alt="Band Photo">
         <div id="stamp-overlay" class="stamp"></div>
       </div>
 
-      <div class="score-display">
-        <span id="score-value"></span>
+      <div id="audit-summary" class="audit-summary"></div>
+
+      <div class="challenge-section">
+        <button id="challenge-toggle-btn" class="btn-challenge-toggle">Challenge This Audit</button>
+        <div id="challenge-box" class="challenge-box hidden">
+          <textarea id="challenge-input" placeholder="Provide missing facts or corrections (e.g. member returned, non-touring status)..."></textarea>
+          <button id="submit-challenge-btn" class="btn-stamp">Submit Challenge</button>
+        </div>
       </div>
+    </section>
 
-      <p id="audit-summary" class="summary"></p>
-
-      <!-- Challenge Actions -->
-      <div class="challenge-actions">
-        <button type="button" id="challenge-toggle-btn" class="btn-submit">
-          Challenge This Audit
-        </button>
-      </div>
-
-      <!-- Challenge Input Box -->
-      <div id="challenge-box" class="challenge-box hidden">
-        <textarea 
-          id="challenge-input" 
-          placeholder="Provide evidence, recent tour updates, or lineup corrections..."
-        ></textarea>
-        <button type="button" id="submit-challenge-btn" class="btn-submit">
-          Submit Re-Audit Challenge
-        </button>
-      </div>
-    </div>
-
-    <!-- Scoring Tiers Legend -->
+    <!-- Scoring Tiers & Methodology Legend -->
     <section class="tier-legend">
       <h2>Scoring Tiers & Criteria</h2>
       <div class="legend-list">
-        
         <div class="legend-card gold">
           <div class="legend-header">
             <span class="legend-badge">100%</span>
@@ -88,7 +83,7 @@
 
         <div class="legend-card green">
           <div class="legend-header">
-            <span class="legend-badge">75% – 99%</span>
+            <span class="legend-badge">75% - 99%</span>
             <span class="legend-title">Tier 2: Near-Mint Vintage</span>
           </div>
           <p class="legend-desc">Core members present with minimal lineup substitutions.</p>
@@ -96,7 +91,7 @@
 
         <div class="legend-card yellow">
           <div class="legend-header">
-            <span class="legend-badge">50% – 74%</span>
+            <span class="legend-badge">50% - 74%</span>
             <span class="legend-title">Tier 3: Co-Founder Equity</span>
           </div>
           <p class="legend-desc">At least half of the original core roster remains active.</p>
@@ -104,7 +99,7 @@
 
         <div class="legend-card orange">
           <div class="legend-header">
-            <span class="legend-badge">25% – 49%</span>
+            <span class="legend-badge">25% - 49%</span>
             <span class="legend-title">Tier 4: Solo Project in Disguise</span>
           </div>
           <p class="legend-desc">Heavy member loss or single non-vocalist core member remaining.</p>
@@ -112,7 +107,7 @@
 
         <div class="legend-card red">
           <div class="legend-header">
-            <span class="legend-badge">0% – 24%</span>
+            <span class="legend-badge">0% - 24%</span>
             <span class="legend-title">Tier 5: The Ghost Ship (Zombie Franchise)</span>
           </div>
           <p class="legend-desc">Defunct band, no core members, or brand name operating as a ghost entity.</p>
@@ -125,18 +120,17 @@
           </div>
           <p class="legend-desc">Band is defunct, dormant, or has no active upcoming tour dates scheduled.</p>
         </div>
-
       </div>
 
       <div class="calc-method-link">
-        <a href="about.html">View full calculation method & rules &rarr;</a>
+        <a href="about.html">View full calculation method & rules →</a>
       </div>
     </section>
-  </main>
 
-  <footer>
-    <p>Made with ❤️ by <a href="https://github.com/varioni" target="_blank" rel="noopener noreferrer">varioni</a></p>
-  </footer>
+    <footer>
+      Lineup Purity Audit for Live Music • <a href="index-list.html">View Roster Index</a> • <a href="about.html">About & Methodology</a> • Made with ❤️ by <a href="https://github.com/varioni" target="_blank">varioni</a>
+    </footer>
+  </div>
 
   <script src="app.js"></script>
 </body>
