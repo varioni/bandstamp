@@ -6,7 +6,7 @@
   --text-color: #2b2625;
   --accent-color: #8b0000;
   --border-color: #d8cfc4;
-  --shadow-color: rgba(43, 38, 37, 0.08);
+  --shadow-color: rgba(43, 38, 37, 0.12);
 }
 
 * {
@@ -80,7 +80,7 @@ body {
   padding: 0.75rem 1rem;
   font-family: 'Special Elite', monospace;
   font-size: 1rem;
-  border: 1px solid var(--border-color);
+  border: 2px solid var(--border-color);
   border-radius: 4px;
   background-color: #fff;
   color: var(--text-color);
@@ -91,10 +91,11 @@ body {
   border-color: var(--accent-color);
 }
 
+/* Restored Crimson Red Primary Button Styling */
 .btn-stamp {
-  background-color: var(--accent-color);
-  color: #fff;
-  border: none;
+  background-color: var(--accent-color) !important;
+  color: #ffffff !important;
+  border: 2px solid #5a0000 !important;
   padding: 0.75rem 1.5rem;
   font-family: 'Special Elite', monospace;
   font-size: 1rem;
@@ -102,10 +103,11 @@ body {
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
 }
 
 .btn-stamp:hover {
-  background-color: #6b0000;
+  background-color: #6b0000 !important;
 }
 
 .btn-stamp:active {
@@ -156,264 +158,16 @@ body {
   font-size: 1.6rem;
 }
 
+/* Restored Tier Badge Styling with Background Fill */
 .tier-badge-text {
   font-size: 0.85rem;
+  font-weight: bold;
   font-style: italic;
-  color: #666;
-  border: 1px dashed var(--border-color);
-  padding: 0.2rem 0.5rem;
+  color: var(--accent-color) !important;
+  background-color: #f3e9dc;
+  border: 1px dashed var(--accent-color);
+  padding: 0.3rem 0.6rem;
   border-radius: 4px;
 }
 
-/* Container positioning for the stamp over the image */
-.image-wrapper {
-  position: relative;
-  width: 100%;
-  max-height: 400px;
-  overflow: hidden;
-  border-radius: 6px;
-  margin-bottom: 1.5rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.image-wrapper img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-/* Large Centered Circular Rubber Stamp Style */
-.stamp {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) rotate(-12deg);
-  width: 180px;
-  height: 180px;
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  font-family: 'Special Elite', monospace;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  line-height: 1.2;
-  padding: 10px;
-  box-sizing: border-box;
-
-  /* Double concentric ring effect like an official rubber stamp */
-  border: 6px double currentColor;
-  box-shadow: 0 0 0 3px currentColor inset, 0 0 15px rgba(0, 0, 0, 0.4);
-
-  /* Textured rubber ink opacity */
-  opacity: 0.90;
-  mix-blend-mode: multiply;
-  pointer-events: none;
-  z-index: 10;
-  animation: stampIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-/* Stamp Animation Effect */
-@keyframes stampIn {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(2) rotate(-25deg);
-  }
-  100% {
-    opacity: 0.90;
-    transform: translate(-50%, -50%) scale(1) rotate(-12deg);
-  }
-}
-
-/* Circular Stamp Scoring Color Tiers */
-.stamp.gold {
-  color: #c59b27;
-  background: rgba(255, 248, 220, 0.35);
-  border-color: #c59b27;
-}
-
-.stamp.green {
-  color: #2e7d32;
-  background: rgba(232, 245, 233, 0.35);
-  border-color: #2e7d32;
-}
-
-.stamp.yellow {
-  color: #f57f17;
-  background: rgba(255, 253, 231, 0.35);
-  border-color: #f57f17;
-}
-
-.stamp.orange {
-  color: #e65100;
-  background: rgba(255, 243, 224, 0.35);
-  border-color: #e65100;
-}
-
-.stamp.red {
-  color: #b71c1c;
-  background: rgba(255, 235, 238, 0.35);
-  border-color: #b71c1c;
-}
-
-.stamp.black {
-  color: #111111;
-  background: rgba(240, 240, 240, 0.45);
-  border-color: #111111;
-}
-
-/* Editorial Summary Output */
-.audit-summary {
-  white-space: pre-line;
-  font-size: 0.95rem;
-  color: #333;
-  margin-bottom: 1.5rem;
-}
-
-.audit-summary strong {
-  font-weight: bold;
-  color: #111;
-}
-
-/* Challenge Section */
-.challenge-section {
-  text-align: center;
-  border-top: 1px dashed var(--border-color);
-  padding-top: 1.2rem;
-}
-
-.btn-challenge-toggle {
-  background: none;
-  border: 1px solid var(--accent-color);
-  color: var(--accent-color);
-  padding: 0.5rem 1rem;
-  font-family: 'Special Elite', monospace;
-  font-size: 0.9rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-challenge-toggle:hover {
-  background-color: var(--accent-color);
-  color: #fff;
-}
-
-.challenge-box {
-  margin-top: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-#challenge-input {
-  width: 100%;
-  height: 80px;
-  padding: 0.75rem;
-  font-family: 'Special Elite', monospace;
-  font-size: 0.9rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  resize: vertical;
-}
-
-/* Tier Legend Section */
-.tier-legend {
-  background-color: var(--card-bg);
-  border: 2px solid var(--border-color);
-  border-radius: 6px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 12px var(--shadow-color);
-}
-
-.tier-legend h2 {
-  font-size: 1.4rem;
-  text-align: center;
-  margin-bottom: 1.2rem;
-  color: var(--accent-color);
-}
-
-.legend-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-}
-
-.legend-card {
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  padding: 0.75rem 1rem;
-  background-color: #fff;
-}
-
-.legend-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.3rem;
-}
-
-.legend-badge {
-  font-weight: bold;
-  font-size: 0.85rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 3px;
-  border: 1px solid currentColor;
-}
-
-.legend-card.gold .legend-badge { color: #c59b27; }
-.legend-card.green .legend-badge { color: #2e7d32; }
-.legend-card.yellow .legend-badge { color: #f57f17; }
-.legend-card.orange .legend-badge { color: #e65100; }
-.legend-card.red .legend-badge { color: #b71c1c; }
-.legend-card.black .legend-badge { color: #111111; }
-
-.legend-title {
-  font-weight: bold;
-  font-size: 0.95rem;
-}
-
-.legend-desc {
-  font-size: 0.85rem;
-  color: #555;
-}
-
-.calc-method-link {
-  text-align: center;
-  margin-top: 1.2rem;
-}
-
-.calc-method-link a {
-  color: var(--accent-color);
-  font-size: 0.9rem;
-  text-decoration: underline;
-}
-
-/* Utilities & Footer */
-.hidden {
-  display: none !important;
-}
-
-footer {
-  text-align: center;
-  margin-top: 3rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
-  font-size: 0.85rem;
-  color: #666;
-}
-
-footer a {
-  color: var(--accent-color);
-  text-decoration: none;
-}
-
-footer a:hover {
-  text-decoration: underline;
-}
+/* Photo
