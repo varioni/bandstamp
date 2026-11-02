@@ -60,19 +60,19 @@ module.exports = async function handler(req, res) {
     1. FUTURE TOUR CHECK: Search for upcoming/future announced shows. If no future tour dates exist or the band is defunct/dormant, set is_currently_touring = false and touring_members_present = [].
     
     2. MEMBER AUDIT MANDATE: 
-       - Identify classic breakthrough baseline members (e.g., Mk II Deep Purple: Ian Gillan, Ritchie Blackmore, Roger Glover, Ian Paice, Jon Lord).
-       - Identify who among them is PHYSICALLY PERFORMING on stage for upcoming dates (e.g., Ian Gillan, Roger Glover, Ian Paice).
-       - Any baseline member present on stage MUST be listed in touring_members_present!
-       - Replacement musicians (e.g., Simon McBride, Don Airey) are NOT baseline members and CANNOT count toward touring_members_present.
+       - Identify classic breakthrough baseline members.
+       - Identify who among them is PHYSICALLY PERFORMING on stage for upcoming dates.
+       - Replacement musicians are NOT baseline members and CANNOT count toward touring_members_present.
 
-    3. EDITORIAL SUMMARY FORMAT (MANDATORY STRUCTURE, 3 to 5 full sentences):
+    3. EDITORIAL SUMMARY FORMAT (MANDATORY STRUCTURE WITH ROLES, 3 to 5 full sentences):
        - Sentence 1: Upcoming tour status and context.
-       - Sentence 2: MUST explicitly state: "On stage: [Full Names of baseline members present] flanked by [Full Names of replacement touring musicians]."
-       - Sentence 3: MUST explicitly state: "Absent/Missing: [Full Names of missing/deceased baseline members]."
-       - Sentences 4-5: Sharp, sardonic Pitchfork-style editorial verdict on whether this lineup holds the genuine spirit of the band.
+       - Sentence 2 (MANDATORY ANNOTATED ROLES): MUST explicitly state: "On stage: [Name (Instrument - Founding Member / Classic Era Member)] joined by [Name (Instrument - Touring Replacement)]."
+       - Sentence 3 (MANDATORY ANNOTATED ROLES): MUST explicitly state: "Absent/Missing: [Name (Instrument - Founding Member / Deceased / Opted Out)]."
+       - Sentences 4-5: Sharp, sardonic Pitchfork-style editorial verdict on whether this lineup preserves the real spirit of the music.
 
     4. STRICT FORBIDDEN ITEMS:
-       - NEVER use generic fluff terms like "engine room", "classic core", "immortal lineup" without stating real names.
+       - NEVER list names without explicitly stating their role/status (e.g. founding member, classic era, or touring replacement).
+       - NEVER use generic fluff terms like "engine room", "classic core", "immortal lineup" without stating real names with roles.
        - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
        - NEVER write "database ghosts", "system audit", "AI", or raw score percentage math.
 
@@ -85,7 +85,7 @@ module.exports = async function handler(req, res) {
       "frontman_name": "Original Lead Singer",
       "frontman_present": true,
       "is_currently_touring": true,
-      "editorial_summary": "3 to 5 sentence energetic Pitchfork-style paragraph with mandatory On Stage and Absent member name breakdowns..."
+      "editorial_summary": "3 to 5 sentence energetic Pitchfork-style paragraph with mandatory annotated member role breakdowns..."
     }
   `;
 
