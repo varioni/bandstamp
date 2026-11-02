@@ -20,7 +20,7 @@ body {
   color: var(--text-color);
   font-family: 'Special Elite', monospace;
   line-height: 1.6;
-  padding: 3rem 1.25rem;
+  padding: 0 0 3rem 0;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -30,14 +30,62 @@ body {
   max-width: 680px;
   margin: 0 auto;
   width: 100%;
+  padding: 0 1.25rem;
   flex: 1;
+}
+
+/* Rotating Ticker Banner */
+.ticker-banner {
+  background-color: #2b2625;
+  color: #f4efe6;
+  border-bottom: 2px solid var(--accent-color);
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0.65rem 0;
+  font-size: 0.85rem;
+  margin-bottom: 2.5rem;
+  position: relative;
+  width: 100%;
+}
+
+.ticker-track {
+  display: inline-block;
+  white-space: nowrap;
+  animation: tickerScroll 30s linear infinite;
+}
+
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes tickerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-item {
+  display: inline-block;
+  color: #f4efe6;
+  text-decoration: none;
+  margin-right: 2.5rem;
+  transition: color 0.2s ease;
+}
+
+.ticker-item:hover {
+  color: #ffd700;
+  text-decoration: underline;
+}
+
+.ticker-score {
+  font-weight: bold;
+  color: #ffd700;
 }
 
 /* Hero Header Spacing */
 .hero-brand {
   text-align: center;
   margin-bottom: 3.5rem;
-  padding-top: 1rem;
+  padding-top: 0.5rem;
 }
 
 .main-logo {
@@ -62,7 +110,7 @@ body {
   margin-bottom: 0.5rem;
 }
 
-/* Search Box & Mobile Stacking */
+/* Search Box & Inputs */
 .search-box {
   background-color: var(--card-bg);
   border: 2px solid var(--border-color);
@@ -93,7 +141,7 @@ body {
   border-color: var(--accent-color);
 }
 
-/* Search Button */
+/* Primary Dark Red Button Styling */
 #stamp-btn, .btn-stamp {
   background-color: #8b0000 !important;
   color: #ffffff !important;
@@ -164,6 +212,7 @@ body {
   font-size: 1.75rem;
 }
 
+/* Tier Badge Text Styling */
 .tier-badge-text {
   font-size: 0.85rem;
   font-weight: bold;
@@ -432,12 +481,8 @@ body {
   text-decoration: underline;
 }
 
-/* Mobile Responsiveness & Extra Breathing Room */
+/* Mobile Responsiveness */
 @media (max-width: 580px) {
-  body {
-    padding: 2rem 1rem;
-  }
-
   .hero-brand {
     margin-bottom: 2.5rem;
   }
