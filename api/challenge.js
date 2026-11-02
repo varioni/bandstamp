@@ -27,34 +27,27 @@ module.exports = async function handler(req, res) {
   }
 
   const systemInstruction = `
-    You are BandStamp lead inspector evaluating a band audit for: ${bandName}.
-    A user submitted this critique/query: "${critique}".
+    You are BandStamp lead inspector reviewing a user challenge for: ${bandName}.
+    User critique: "${critique}".
 
-    STRICT RE-AUDIT & TRUTH-CHECK RULES:
-    1. FACT-CHECK MANDATE:
-       - Perform a web search to verify if the user's critique provides valid, verifiable new facts (e.g., a newly announced tour, a member returning/leaving).
-       - If the user's critique is vague (e.g. "Are you sure?", "Wrong", "Check again"), unverified, or factually incorrect, REJECT the critique and preserve the accurate baseline audit. Do NOT change facts unless new web evidence confirms it.
+    STRICT RE-AUDIT RULES:
+    1. ZERO-FOUNDER / GHOST SHIP MANDATE:
+       - Check if zero original founding/classic breakthrough members are alive and physically performing on stage.
+       - If zero classic members remain (e.g., Lynyrd Skynyrd after Gary Rossington's death), set zero_classic_members_on_stage = true and touring_members_present = [].
 
-    2. ABSOLUTE FORBIDDEN META-COMMENTARY:
-       - NEVER mention that you were challenged, asked "Are you sure?", or re-evaluating.
-       - NEVER refer to "the provided results", "the user query", "Pitchfork-wise safer call", or "according to sources".
-       - Write as an authoritative, definitive, direct Pitchfork-style rock journalist.
+    2. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
+       IF IS_CURRENTLY_TOURING = FALSE:
+       - Write 2 short paragraphs confirming no active tour dates.
 
-    3. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
-       IF IS_CURRENTLY_TOURING = FALSE (SHORT 2-PARAGRAPH SUMMARY):
-       - STRICTLY FORBIDDEN: Do NOT include "**On stage:**" or "**Absent/Missing:**" roster breakdowns.
-       - Write 2 short paragraphs confirming there are no active tour dates and a direct Pitchfork closing statement.
-
-       IF IS_CURRENTLY_TOURING = TRUE (MANDATORY 3 PARAGRAPHS SEPARATED BY \\n\\n):
-       - Paragraph 1: 1-2 short sentences max confirming active tour status. Do NOT list cities or venues.
+       IF IS_CURRENTLY_TOURING = TRUE:
+       - Paragraph 1: 1-2 short sentences max confirming active tour status.
        - Paragraph 2 (LINEUP BREAKDOWN):
-         "**On stage:** [Names and annotated roles]\\n\\n**Absent/Missing:** [Classic baseline members not present OR 'None']."
+         "**On stage:** [Names and annotated roles]\\n\\n**Absent/Missing:** [Classic baseline members not present]."
        - Paragraph 3: 2 sentences of direct, energetic Pitchfork-style verdict.
 
-    4. STRICT FORBIDDEN ITEMS:
-       - NEVER list venue names, city lists, or date itineraries.
+    3. STRICT FORBIDDEN ITEMS:
+       - NEVER mention being challenged or re-evaluating.
        - NEVER output raw literal line breaks inside JSON strings. Use \\n\\n instead.
-       - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
 
     CRITICAL: Output MUST be valid single-line raw JSON only without markdown formatting:
     {
@@ -62,10 +55,11 @@ module.exports = async function handler(req, res) {
       "debut_album": "Landmark Album/Era",
       "baseline_members": ["Member 1", "Member 2"],
       "touring_members_present": [],
+      "zero_classic_members_on_stage": true,
       "frontman_name": "Original Lead Singer",
       "frontman_present": false,
-      "is_currently_touring": false,
-      "editorial_summary": "Short paragraph 1\\n\\nShort paragraph 2..."
+      "is_currently_touring": true,
+      "editorial_summary": "Short paragraph 1\\n\\n**On stage:** ...\\n\\n**Absent/Missing:** ...\\n\\nShort paragraph 3..."
     }
   `;
 
@@ -74,7 +68,9 @@ module.exports = async function handler(req, res) {
     const aiController = new AbortController();
     aiTimer = setTimeout(() => aiController.abort(), 20000);
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const openRouterEndpoint = "https://openrouter.ai/api/v1/chat/completions";
+
+    const response = await fetch(openRouterEndpoint, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
@@ -86,7 +82,7 @@ module.exports = async function handler(req, res) {
         model: "perplexity/sonar",
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Re-verify tour status and lineup for ${bandName} against critique: ${critique}` }
+          { role: "user", content: `Re-verify lineup for ${bandName} with critique: ${critique}` }
         ],
         max_tokens: 800,
         temperature: 0.0
@@ -127,16 +123,19 @@ module.exports = async function handler(req, res) {
           band_name: bandName,
           baseline_members: [],
           touring_members_present: [],
+          zero_classic_members_on_stage: false,
           frontman_present: false,
-          is_currently_touring: false,
-          editorial_summary: `No active tour dates currently announced for ${bandName}.`
+          is_currently_touring: true,
+          editorial_summary: `Re-audit completed for ${bandName}.`
         };
       }
     }
 
     const baselineList = data.baseline_members || [];
     let touringList = data.touring_members_present || [];
-    if (data.is_currently_touring === false) touringList = [];
+    if (data.is_currently_touring === false || data.zero_classic_members_on_stage === true) {
+      touringList = [];
+    }
 
     const totalBase = baselineList.length || 1;
     const presentBase = touringList.length;
@@ -144,7 +143,7 @@ module.exports = async function handler(req, res) {
     let baseScore = Math.round((presentBase / totalBase) * 100);
     let finalScore = baseScore;
 
-    if (presentBase === 0) {
+    if (presentBase === 0 || data.zero_classic_members_on_stage === true) {
       finalScore = 0;
     } else if (presentBase === 1 && !data.frontman_present) {
       finalScore = 25;
