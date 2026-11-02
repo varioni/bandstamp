@@ -99,12 +99,14 @@ module.exports = async function handler(req, res) {
     const aiController = new AbortController();
     aiTimer = setTimeout(() => aiController.abort(), 20000);
 
-    const response = await fetch("[https://openrouter.ai/api/v1/chat/completions](https://openrouter.ai/api/v1/chat/completions)", {
+    const openRouterEndpoint = "https://openrouter.ai/api/v1/chat/completions";
+
+    const response = await fetch(openRouterEndpoint, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "[https://bandstamp.com](https://bandstamp.com)",
+        "HTTP-Referer": "https://bandstamp.com",
         "X-Title": "BandStamp"
       },
       body: JSON.stringify({
@@ -128,7 +130,6 @@ module.exports = async function handler(req, res) {
     const rawData = await response.json();
     let textOutput = rawData.choices[0].message.content.trim();
     
-    // Clean up markdown block wraps (e.g. ```json ... ```)
     textOutput = textOutput.replace(/```json/gi, '').replace(/```/g, '').trim();
     textOutput = textOutput.replace(/\[\d+\]/g, '');
 
@@ -145,7 +146,7 @@ module.exports = async function handler(req, res) {
       data = JSON.parse(textOutput);
     } catch (parseErr) {
       if (!textOutput.endsWith('"}') && !textOutput.endsWith('}')) {
-        textOutput += '"}' ;
+        textOutput += '"}';
       }
       data = JSON.parse(textOutput);
     }
