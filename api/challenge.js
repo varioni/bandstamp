@@ -35,11 +35,11 @@ module.exports = async function handler(req, res) {
 
     2. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
        IF IS_CURRENTLY_TOURING = FALSE:
-       - Do NOT list "On stage:" or "Absent/Missing:" rosters.
+       - Do NOT list "**On stage:**" or "**Absent/Missing:**" rosters.
        - Write 2 short paragraphs explaining that the band is not touring, where surviving founders are now, and a brief Pitchfork closing statement.
 
        IF IS_CURRENTLY_TOURING = TRUE:
-       - Write 3 structured paragraphs including explicit "On stage:" and "Absent/Missing:" role breakdowns and a 2-sentence verdict.
+       - Write 3 structured paragraphs including explicit "**On stage:**" and "**Absent/Missing:**" role breakdowns and a 2-sentence verdict.
 
     3. STRICT FORBIDDEN ITEMS:
        - NEVER output raw literal line breaks inside JSON strings. Use \\n\\n instead.
@@ -55,7 +55,7 @@ module.exports = async function handler(req, res) {
       "frontman_name": "Original Lead Singer",
       "frontman_present": false,
       "is_currently_touring": false,
-      "editorial_summary": "Short paragraph 1\\n\\nShort paragraph 2..."
+      "editorial_summary": "Short paragraph 1\\n\\n**On stage:** ... **Absent/Missing:** ...\\n\\nShort paragraph 3..."
     }
   `;
 
