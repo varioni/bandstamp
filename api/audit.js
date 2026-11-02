@@ -59,29 +59,27 @@ module.exports = async function handler(req, res) {
     STRICT AUDIT & ACCURACY RULES:
     1. HISTORICAL BASELINE MANDATE:
        - Define the definitive, classic breakthrough / peak commercial lineup for ${bandName}.
-       - For classic acts, baseline_members MUST include the full classic multi-member lineup.
-       - Never restrict baseline_members to only the currently active touring members.
+       - For classic acts, baseline_members MUST include the core breakthrough members (e.g., for Lynyrd Skynyrd: Ronnie Van Zant, Gary Rossington, Allen Collins, Leon Wilkeson, Billy Powell, Bob Burns, Ed King).
 
-    2. FUTURE TOUR CHECK:
-       - Check for active or upcoming future tour dates.
-       - If no active/upcoming tour exists under this band name or the band is defunct/inactive, set is_currently_touring = false and touring_members_present = [].
-       - If currently touring, touring_members_present MUST ONLY contain baseline_members who are physically performing on stage. Replacement or touring musicians DO NOT count.
+    2. ZERO-FOUNDER / GHOST SHIP MANDATE:
+       - If ZERO original founding or peak-era breakthrough members are alive and physically performing on stage (e.g. Lynyrd Skynyrd today), set zero_classic_members_on_stage = true and touring_members_present = [].
+       - Replacement family members (e.g. Johnny Van Zant) or later revival hires DO NOT count as classic baseline members.
 
     3. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
 
        IF IS_CURRENTLY_TOURING = FALSE (SHORT 2-PARAGRAPH SUMMARY):
        - STRICTLY FORBIDDEN: Do NOT include "**On stage:**" or "**Absent/Missing:**" roster breakdowns.
-       - Paragraph 1 (1-2 short sentences): Confirm there are no active or upcoming tour dates under the official band name. Mention briefly if surviving founders perform solo or if the project is inactive.
-       - Paragraph 2 (1 short sentence): Direct, sharp Pitchfork-style closing statement on why the live book remains closed for now.
+       - Paragraph 1 (1-2 short sentences): Confirm there are no active tour dates.
+       - Paragraph 2 (1 short sentence): Direct Pitchfork-style closing statement.
 
        IF IS_CURRENTLY_TOURING = TRUE (MANDATORY 3 PARAGRAPHS SEPARATED BY \\n\\n):
        - Paragraph 1: 1-2 short sentences max confirming active tour status. STRICTLY FORBIDDEN: Do NOT list cities, venue names, or date itineraries.
        - Paragraph 2 (LINEUP BREAKDOWN):
-         "**On stage:** [Names and annotated roles]\\n\\n**Absent/Missing:** [Classic baseline members not present OR 'None']."
+         "**On stage:** [Names and annotated roles]\\n\\n**Absent/Missing:** [Classic baseline members not present]."
        - Paragraph 3: 2 sentences of sharp, energetic Pitchfork-style verdict.
 
     4. STRICT FORBIDDEN ITEMS:
-       - NEVER mention that this is an AI response, search result, or re-audit.
+       - NEVER mention that this is an AI response or re-audit.
        - NEVER list venue names, city lists, or date itineraries.
        - NEVER output raw literal line breaks inside JSON strings. Use \\n\\n instead.
        - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
@@ -92,10 +90,11 @@ module.exports = async function handler(req, res) {
       "debut_album": "Landmark Album/Era",
       "baseline_members": ["Member 1", "Member 2"],
       "touring_members_present": [],
+      "zero_classic_members_on_stage": true,
       "frontman_name": "Original Lead Singer",
       "frontman_present": false,
-      "is_currently_touring": false,
-      "editorial_summary": "Short paragraph 1\\n\\nShort paragraph 2..."
+      "is_currently_touring": true,
+      "editorial_summary": "Short paragraph 1\\n\\n**On stage:** ...\\n\\n**Absent/Missing:** ...\\n\\nShort paragraph 3..."
     }
   `;
 
@@ -160,9 +159,10 @@ module.exports = async function handler(req, res) {
           band_name: bandName,
           baseline_members: [],
           touring_members_present: [],
+          zero_classic_members_on_stage: false,
           frontman_present: false,
-          is_currently_touring: false,
-          editorial_summary: `No active tour dates currently announced for ${bandName}.`
+          is_currently_touring: true,
+          editorial_summary: `Lineup inspection completed for ${bandName}.`
         };
       }
     }
@@ -170,7 +170,7 @@ module.exports = async function handler(req, res) {
     const baselineList = data.baseline_members || [];
     let touringList = data.touring_members_present || [];
 
-    if (data.is_currently_touring === false) {
+    if (data.is_currently_touring === false || data.zero_classic_members_on_stage === true) {
       touringList = [];
     }
 
@@ -180,7 +180,7 @@ module.exports = async function handler(req, res) {
     let baseScore = Math.round((presentBase / totalBase) * 100);
     let finalScore = baseScore;
 
-    if (presentBase === 0) {
+    if (presentBase === 0 || data.zero_classic_members_on_stage === true) {
       finalScore = 0;
     } else if (presentBase === 1 && !data.frontman_present) {
       finalScore = 25;
