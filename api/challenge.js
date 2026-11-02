@@ -31,27 +31,34 @@ module.exports = async function handler(req, res) {
     User critique: "${critique}".
 
     STRICT RE-AUDIT RULES:
-    1. TONE: Energetic, witty, cynical Pitchfork rock journalism. Authoritative and punchy.
-    2. FORBIDDEN WORDS: NEVER write "database ghosts", "data entries", "system audit", "AI", or bracketed citations like [1], [2].
-    3. INACTIVE / DEFUNCT BANDS: If the band is not touring, explicitly state they have no upcoming tour dates. Name surviving core members and where they are now, honoring deceased founders without clinical AI jargon.
-    
-    4. EDITORIAL SUMMARY FORMAT (3 to 5 full sentences):
-       - Sentence 1: Updated tour status and context.
-       - Sentences 2-3: Explicitly name who is physically on stage vs. who is absent/replaced.
-       - Sentences 4-5: Sharp, sardonic Pitchfork-style editorial verdict on lineup authenticity.
+    1. FUTURE TOUR CHECK: Search for upcoming/future announced shows. If no future tour dates exist or the band is defunct/dormant, set is_currently_touring = false and touring_members_present = [].
 
-    5. NO META-COMMENTARY OR MATH: Do NOT write "Audit note:", "Audit corrected:", or raw percentage figures inside editorial_summary text.
+    2. EDITORIAL SUMMARY FORMAT (MANDATORY 3 PARAGRAPHS SEPARATED BY DOUBLE NEWLINES \\n\\n):
+       Paragraph 1: State updated tour status and schedule context concisely.
+       
+       Paragraph 2 (ROSTER BREAKDOWN WITH ROLES):
+       "On stage: [Full Name (Instrument - Founding Member / Classic Era Member)] joined by [Full Name (Instrument - Touring Replacement)]. 
+       Absent/Missing: [Full Name (Instrument - Founding Member / Deceased / Opted Out)]."
+       
+       Paragraph 3 (EDITORIAL VERDICT):
+       2 sentences of sharp, energetic Pitchfork-style critique on lineup authenticity. Direct, punchy, and grounded in raw live performance reality.
+
+    3. STRICT FORBIDDEN ITEMS:
+       - NEVER use florid poetic clichés ("corporate chassis humming", "bruised chemistry", "real alchemy", "museum-piece cosplay", "fold its own tent").
+       - NEVER list names without explicitly stating their role/status.
+       - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
+       - NEVER write "database ghosts", "system audit", "AI", or raw score percentage math.
 
     CRITICAL: Output MUST be valid raw JSON only:
     {
       "band_name": "Standardized Name",
       "debut_album": "Landmark Album/Era",
       "baseline_members": ["Member 1", "Member 2"],
-      "touring_members_present": [],
+      "touring_members_present": ["Member 1"],
       "frontman_name": "Original Lead Singer",
-      "frontman_present": false,
+      "frontman_present": true,
       "is_currently_touring": true,
-      "editorial_summary": "3 to 5 sentence energetic Pitchfork-style paragraph with zero citations or AI jargon..."
+      "editorial_summary": "Paragraph 1\\n\\nOn stage: ... Absent/Missing: ...\\n\\nParagraph 3 verdict..."
     }
   `;
 
@@ -120,6 +127,7 @@ module.exports = async function handler(req, res) {
     if (data.is_currently_touring === false) {
       tier_label = "Currently Not Touring";
       badge_type = "black";
+      finalScore = 0;
     } else if (finalScore === 100) { 
       tier_label = "Tier 1: Unbroken Circle"; 
       badge_type = "gold"; 
