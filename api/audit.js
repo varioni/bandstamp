@@ -59,13 +59,13 @@ module.exports = async function handler(req, res) {
     STRICT AUDIT & ACCURACY RULES:
     1. HISTORICAL BASELINE MANDATE:
        - Define the definitive, classic breakthrough / peak commercial lineup for ${bandName}.
-       - For classic acts (e.g. The Offspring), baseline_members MUST include all classic core members (e.g. Dexter Holland, Noodles, Greg K., Ron Welty).
+       - For classic acts, baseline_members MUST include all classic core members.
        - Never restrict baseline_members to only the currently active touring members.
 
     2. ZERO-FOUNDER / STAGE AUDIT MANDATE:
        - touring_members_present MUST ONLY contain classic baseline members who are physically performing on stage right now. 
-       - Replacement or touring musicians (e.g. Todd Morse, Jonah Nimoy, Brandon Pertzborn) DO NOT count in touring_members_present.
-       - If classic members are absent (e.g. Noodles taking a leave, Greg K. fired), they MUST be listed under Absent/Missing.
+       - Replacement or touring musicians DO NOT count in touring_members_present.
+       - If classic members are absent, they MUST be listed under Absent/Missing.
 
     3. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
 
@@ -90,10 +90,10 @@ module.exports = async function handler(req, res) {
     {
       "band_name": "Standardized Name",
       "debut_album": "Landmark Album/Era",
-      "baseline_members": ["Dexter Holland", "Noodles", "Greg K."],
-      "touring_members_present": ["Dexter Holland"],
+      "baseline_members": ["Member 1", "Member 2"],
+      "touring_members_present": ["Member 1"],
       "zero_classic_members_on_stage": false,
-      "frontman_name": "Dexter Holland",
+      "frontman_name": "Lead Singer",
       "frontman_present": true,
       "is_currently_touring": true,
       "editorial_summary": "Short paragraph 1\\n\\n**On stage:** ...\\n\\n**Absent/Missing:** ...\\n\\nShort paragraph 3..."
@@ -178,13 +178,11 @@ module.exports = async function handler(req, res) {
     if (absentMatch) {
       const absentSection = absentMatch[1].trim();
       if (!absentSection.toLowerCase().includes('none')) {
-        // If Absent/Missing names members, filter out those members from touringList
         touringList = touringList.filter(m => {
           const mName = m.toLowerCase();
           return !absentSection.toLowerCase().includes(mName);
         });
         
-        // Ensure baseline includes missing members if AI omitted them from baseline
         if (touringList.length === baselineList.length && baselineList.length > 0) {
           baselineList.push("Missing Core Member");
         }
@@ -247,15 +245,23 @@ module.exports = async function handler(req, res) {
 
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
-      fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
+      
+      // Await cached payload write
+      await fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
         headers: { Authorization: `Bearer ${KV_TOKEN}` },
         method: 'POST',
         body: JSON.stringify(resultPayload)
       }).catch(e => console.warn("Redis write warning:", e.message));
 
+      // Await active_bands index set write
       if (data.is_currently_touring) {
-        fetch(`${KV_URL}/sadd/active_bands/${encodeURIComponent(cacheKey)}`, {
-          headers: { Authorization: `Bearer ${KV_TOKEN}` }
+        await fetch(`${KV_URL}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${KV_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(['SADD', 'active_bands', cacheKey])
         }).catch(e => console.warn("Redis index error:", e.message));
       }
     }
