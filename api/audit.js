@@ -63,7 +63,7 @@ module.exports = async function handler(req, res) {
     4. Hard Cross-Check: Missing/deceased members in narrative MUST be in baseline_members and ABSENT from touring_members_present.
     5. DO NOT write raw percentage figures or math inside editorial_summary text.
 
-    Return ONLY JSON:
+    CRITICAL: Output MUST be valid raw JSON only, with no markdown formatting blocks, backticks, or extra text.
     {
       "band_name": "Standardized Name",
       "debut_album": "Landmark Album/Era",
@@ -79,7 +79,7 @@ module.exports = async function handler(req, res) {
   let aiTimer;
   try {
     const aiController = new AbortController();
-    aiTimer = setTimeout(() => aiController.abort(), 8500);
+    aiTimer = setTimeout(() => aiController.abort(), 20000);
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -95,7 +95,6 @@ module.exports = async function handler(req, res) {
           { role: "system", content: systemInstruction },
           { role: "user", content: `Search current 2025/2026 tour dates and lineup for: ${bandName}` }
         ],
-        response_format: { type: "json_object" },
         max_tokens: 400,
         temperature: 0.0
       }),
@@ -153,7 +152,6 @@ module.exports = async function handler(req, res) {
       summary: summary
     };
 
-    // Non-blocking Redis write
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
       fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
@@ -166,7 +164,7 @@ module.exports = async function handler(req, res) {
   } catch (err) {
     if (aiTimer) clearTimeout(aiTimer);
     if (err.name === 'AbortError') {
-      return res.status(504).json({ error: "Audit request timed out." });
+      return res.status(504).json({ error: "Audit request timed out searching web." });
     }
     return res.status(500).json({ error: `Server Exception: ${err.message}` });
   }
