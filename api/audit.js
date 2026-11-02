@@ -151,7 +151,7 @@ module.exports = async function handler(req, res) {
     } else if (presentBase === 1 && !data.frontman_present) {
       finalScore = 25;
     } else if (!data.frontman_present && presentBase > 1) {
-      finalScore -= 30;
+      finalScore -= 10; // Reduced from -30 to -10
     }
 
     finalScore = Math.max(0, Math.min(100, finalScore));
