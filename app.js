@@ -56,7 +56,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!bandInput) return;
 
     const query = bandInput.value.trim();
-    if (!query || isProcessing) return;
+    if (!query) {
+      alert('Please enter a band or artist name.');
+      return;
+    }
+
+    if (isProcessing) return;
 
     if (activeRequestController) activeRequestController.abort();
     activeRequestController = new AbortController();
@@ -68,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadingDiv?.classList.remove('hidden');
     resultCard?.classList.add('hidden');
     challengeBox?.classList.add('hidden');
+    
     if (stampOverlay) stampOverlay.className = 'stamp';
     if (imageWrapper) imageWrapper.style.display = 'block';
 
@@ -85,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         data = JSON.parse(textResponse);
       } catch (jsonErr) {
-        throw new Error(`Server returned invalid format (${res.status})`);
+        throw new Error(`Invalid server response format (${res.status})`);
       }
 
       if (!res.ok) {
@@ -131,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         data = JSON.parse(textResponse);
       } catch (jsonErr) {
-        throw new Error(`Server returned invalid format (${res.status})`);
+        throw new Error(`Invalid server response format (${res.status})`);
       }
 
       if (!res.ok) {
@@ -176,7 +182,13 @@ document.addEventListener('DOMContentLoaded', () => {
       stampOverlay.classList.add(data.badge_type);
     }
 
+    // Explicitly make result card visible
     resultCard?.classList.remove('hidden');
+
+    // Ensure challenge button is visible
+    if (challengeToggleBtn) {
+      challengeToggleBtn.style.display = 'inline-block';
+    }
   }
 
   stampBtn?.addEventListener('click', performAudit);
