@@ -6,6 +6,7 @@
   --card-bg: #ffffff;
   --border-color: #d1c7b7;
   --accent-color: #8b0000;
+  --stamp-gold: #b8860b;
   --stamp-green: #1b4d3e;
   --stamp-amber: #b45309;
   --stamp-red: #991b1b;
@@ -33,7 +34,6 @@ body {
   padding: 0 1.5rem;
 }
 
-/* Header & Logo Proportion Adjustments */
 .hero-brand {
   text-align: center;
   margin-bottom: 2rem;
@@ -63,7 +63,6 @@ body {
   margin: 0 auto;
 }
 
-/* Search Form */
 .search-form {
   display: flex;
   gap: 12px;
@@ -114,7 +113,6 @@ body {
   cursor: not-allowed;
 }
 
-/* Refined Scoring Tiers Legend */
 .tier-legend {
   margin-top: 2.5rem;
   padding: 1.8rem;
@@ -280,7 +278,13 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.stamp.gold, .stamp.green {
+/* Stamp Color Classes */
+.stamp.gold {
+  color: var(--stamp-gold);
+  border-color: var(--stamp-gold);
+}
+
+.stamp.green {
   color: var(--stamp-green);
   border-color: var(--stamp-green);
 }
