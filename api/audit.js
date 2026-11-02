@@ -17,18 +17,20 @@ module.exports = async function handler(req, res) {
 
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
   
-  let KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  // Support all Vercel + Upstash Redis environment variable naming schemes
+  let KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.UPSTASH_REDIS_URL;
+  const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.UPSTASH_REDIS_TOKEN;
 
-  if (KV_URL && !KV_URL.startsWith('http')) KV_URL = null;
+  if (KV_URL && !KV_URL.startsWith('http')) KV_URL = `https://${KV_URL}`;
   if (KV_URL && KV_URL.endsWith('/')) KV_URL = KV_URL.slice(0, -1);
 
   const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
 
+  // Read from Redis Cache
   if (KV_URL && KV_TOKEN) {
     try {
       const kvController = new AbortController();
-      const kvTimer = setTimeout(() => kvController.abort(), 600);
+      const kvTimer = setTimeout(() => kvController.abort(), 800);
 
       const cacheRes = await fetch(`${KV_URL}/get/${cacheKey}`, {
         headers: { Authorization: `Bearer ${KV_TOKEN}` },
@@ -105,9 +107,7 @@ module.exports = async function handler(req, res) {
     const aiController = new AbortController();
     aiTimer = setTimeout(() => aiController.abort(), 20000);
 
-    const openRouterEndpoint = "https://openrouter.ai/api/v1/chat/completions";
-
-    const response = await fetch(openRouterEndpoint, {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
@@ -173,7 +173,7 @@ module.exports = async function handler(req, res) {
     let touringList = data.touring_members_present || [];
     let summaryText = data.editorial_summary || '';
 
-    // HARD GUARDRAIL: Cross-verify Absent/Missing text against touring payload
+    // Guardrail: Cross-verify Absent/Missing text against touring payload
     const absentMatch = summaryText.match(/Absent\/Missing:\s*([^.\n]+)/i);
     if (absentMatch) {
       const absentSection = absentMatch[1].trim();
@@ -243,27 +243,37 @@ module.exports = async function handler(req, res) {
       summary: summary
     };
 
+    // Write to Redis DB
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
       
-      // Await cached payload write
-      await fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` },
-        method: 'POST',
-        body: JSON.stringify(resultPayload)
-      }).catch(e => console.warn("Redis write warning:", e.message));
-
-      // Await active_bands index set write
-      if (data.is_currently_touring) {
+      try {
+        // SET key payload command
         await fetch(`${KV_URL}`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${KV_TOKEN}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(['SADD', 'active_bands', cacheKey])
-        }).catch(e => console.warn("Redis index error:", e.message));
+          body: JSON.stringify(['SET', cacheKey, JSON.stringify(resultPayload), 'EX', ttlSeconds])
+        });
+
+        // SADD active_bands index command
+        if (data.is_currently_touring) {
+          await fetch(`${KV_URL}`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${KV_TOKEN}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(['SADD', 'active_bands', cacheKey])
+          });
+        }
+      } catch (redisErr) {
+        console.error("Upstash Redis write failed:", redisErr.message);
       }
+    } else {
+      console.warn("Redis write skipped: KV_URL or KV_TOKEN environment variable missing.");
     }
 
     return res.status(200).json({ ...resultPayload, cached: false });
