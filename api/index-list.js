@@ -16,41 +16,37 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // 1. Get all active touring band cache keys from Redis set
-    const membersRes = await fetch(`${KV_URL}/smembers/active_bands`, {
+    // 1. Fetch all keys matching pattern 'band:*' directly from Redis
+    const keysRes = await fetch(`${KV_URL}/keys/band:*`, {
       headers: { Authorization: `Bearer ${KV_TOKEN}` }
     });
     
     let keys = [];
-    if (membersRes.ok) {
-      const membersData = await membersRes.json();
-      keys = membersData.result || [];
-    }
-
-    // Fallback to pattern matching if active_bands set is empty
-    if (keys.length === 0) {
-      const keysRes = await fetch(`${KV_URL}/keys/band:*`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-      });
-      if (keysRes.ok) {
-        const keysData = await keysRes.json();
-        keys = keysData.result || [];
-      }
+    if (keysRes.ok) {
+      const keysData = await keysRes.json();
+      keys = keysData.result || [];
     }
 
     if (keys.length === 0) return res.status(200).json({ bands: [] });
 
-    // 2. Fetch all band payloads from Redis
+    // 2. Fetch payloads for all band keys using POST commands to handle any key formatting
     const bands = [];
     for (const key of keys) {
       try {
-        const getRes = await fetch(`${KV_URL}/get/${key}`, {
-          headers: { Authorization: `Bearer ${KV_TOKEN}` }
+        const getRes = await fetch(`${KV_URL}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${KV_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(['GET', key])
         });
+
         if (getRes.ok) {
           const item = await getRes.json();
           if (item.result) {
             const parsed = typeof item.result === 'string' ? JSON.parse(item.result) : item.result;
+            // Only include currently active touring bands in the index
             if (parsed.currently_touring) {
               bands.push(parsed);
             }
@@ -61,7 +57,7 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // 3. Sort descending by calculated score
+    // 3. Sort descending by purity score
     bands.sort((a, b) => b.calculated_score - a.calculated_score);
 
     return res.status(200).json({ bands });
