@@ -105,9 +105,7 @@ module.exports = async function handler(req, res) {
     const aiController = new AbortController();
     aiTimer = setTimeout(() => aiController.abort(), 20000);
 
-    const openRouterEndpoint = "https://openrouter.ai/api/v1/chat/completions";
-
-    const response = await fetch(openRouterEndpoint, {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
@@ -163,7 +161,69 @@ module.exports = async function handler(req, res) {
           touring_members_present: [],
           frontman_present: true,
           is_currently_touring: true,
-          editorial_summary: `Lineup inspection completed for ${bandName}.` }; } }  const baselineList = data.baseline_members \vert{}\vert{} []; let touringList = data.touring_members_present \vert{}\vert{} [];  if (data.is_currently_touring === false) { touringList = []; } else { const summaryText = (data.editorial_summary \vert{}\vert{} '').toLowerCase(); if (touringList.length === 0 && baselineList.length > 0) { if ( summaryText.includes('absent/missing: none') \vert{}\vert{} summaryText.includes('none confirmed') \vert{}\vert{} summaryText.includes('no missing members') ) { touringList = [...baselineList]; } } }  const totalBase = baselineList.length \vert{}\vert{} 1; const presentBase = touringList.length;  let baseScore = Math.round((presentBase / totalBase) * 100); let finalScore = baseScore;  if (presentBase === 0) { finalScore = 0; } else if (presentBase === 1 && !data.frontman_present) { finalScore = 25; } else if (!data.frontman_present && presentBase > 1) { finalScore -= 10; }  finalScore = Math.max(0, Math.min(100, finalScore));  let tier_label = "", badge_type = "";  if (data.is_currently_touring === false) { tier_label = "Currently Not Touring"; badge_type = "black"; finalScore = 0; } else if (finalScore === 100) { tier_label = "Tier 1: Unbroken Circle"; badge_type = "gold"; } else if (finalScore >= 75) { tier_label = "Tier 2: Near-Mint Vintage"; badge_type = "green"; } else if (finalScore >= 50) { tier_label = "Tier 3: Co-Founder Equity"; badge_type = "yellow"; } else if (finalScore >= 25) { tier_label = "Tier 4: Solo Project in Disguise"; badge_type = "orange"; } else { tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; badge_type = "red"; }  let summary = (data.editorial_summary \vert{}\vert{} `Auditing ${data.band_name}: ${presentBase} of${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
+          editorial_summary: `Lineup inspection completed for ${bandName}.`
+        };
+      }
+    }
+
+    const baselineList = data.baseline_members || [];
+    let touringList = data.touring_members_present || [];
+
+    if (data.is_currently_touring === false) {
+      touringList = [];
+    } else {
+      const summaryText = (data.editorial_summary || '').toLowerCase();
+      if (touringList.length === 0 && baselineList.length > 0) {
+        if (
+          summaryText.includes('absent/missing: none') || 
+          summaryText.includes('none confirmed') ||
+          summaryText.includes('no missing members')
+        ) {
+          touringList = [...baselineList];
+        }
+      }
+    }
+
+    const totalBase = baselineList.length || 1;
+    const presentBase = touringList.length;
+
+    let baseScore = Math.round((presentBase / totalBase) * 100);
+    let finalScore = baseScore;
+
+    if (presentBase === 0) {
+      finalScore = 0;
+    } else if (presentBase === 1 && !data.frontman_present) {
+      finalScore = 25;
+    } else if (!data.frontman_present && presentBase > 1) {
+      finalScore -= 10;
+    }
+
+    finalScore = Math.max(0, Math.min(100, finalScore));
+
+    let tier_label = "", badge_type = "";
+
+    if (data.is_currently_touring === false) {
+      tier_label = "Currently Not Touring";
+      badge_type = "black";
+      finalScore = 0;
+    } else if (finalScore === 100) { 
+      tier_label = "Tier 1: Unbroken Circle"; 
+      badge_type = "gold"; 
+    } else if (finalScore >= 75) { 
+      tier_label = "Tier 2: Near-Mint Vintage"; 
+      badge_type = "green"; 
+    } else if (finalScore >= 50) { 
+      tier_label = "Tier 3: Co-Founder Equity"; 
+      badge_type = "yellow"; 
+    } else if (finalScore >= 25) { 
+      tier_label = "Tier 4: Solo Project in Disguise"; 
+      badge_type = "orange"; 
+    } else { 
+      tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; 
+      badge_type = "red"; 
+    }
+
+    let summary = (data.editorial_summary || `Auditing ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
 
     const resultPayload = {
       band_name: data.band_name || bandName,
@@ -176,7 +236,8 @@ module.exports = async function handler(req, res) {
 
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
-      fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, { headers: { Authorization: `Bearer ${KV_TOKEN}` }
+      fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
+        headers: { Authorization: `Bearer ${KV_TOKEN}` }
       }).catch(e => console.warn("Redis write warning:", e.message));
     }
 
