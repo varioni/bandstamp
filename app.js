@@ -18,7 +18,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentBandName = '';
 
-  // Load rotating audit ticker banner
+  // Color-coded tier score map
+  const tierColorMap = {
+    gold: '#ffd700',
+    green: '#4caf50',
+    yellow: '#ffeb3b',
+    orange: '#ff9800',
+    red: '#ff5252',
+    black: '#ffffff'
+  };
+
+  // Load rotating audit ticker banner with color-coded score badges
   async function loadTicker() {
     const track = document.getElementById('ticker-track');
     if (!track) return;
@@ -29,11 +39,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const bands = data.bands || [];
 
       if (bands.length > 0) {
-        const itemsHtml = bands.map(b => `
-          <a href="index-list.html" class="ticker-item">
-            ★ <strong>${b.band_name}</strong>: <span class="ticker-score">${b.calculated_score}% PURITY</span>
-          </a>
-        `).join('');
+        const itemsHtml = bands.map(b => {
+          const badgeType = b.badge_type || 'gold';
+          const scoreColor = tierColorMap[badgeType] || '#ffd700';
+          
+          return `
+            <a href="index-list.html" class="ticker-item">
+              ★ <strong>${b.band_name}</strong>: <span class="ticker-score" style="color: ${scoreColor};">${b.calculated_score}% PURITY</span>
+            </a>
+          `;
+        }).join('');
 
         // Duplicate string to create seamless infinite scrolling effect
         track.innerHTML = itemsHtml + itemsHtml;
