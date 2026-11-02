@@ -408,26 +408,58 @@ body {
   appearance: none !important;
 }
 
-/* Tier Legend Section */
-.tier-legend {
+/* Collapsible Tier Legend Dropdown */
+.tier-legend-dropdown {
   background-color: var(--card-bg);
   border: 2px solid var(--border-color);
   border-radius: 6px;
-  padding: 2rem 1.75rem;
   box-shadow: 0 4px 14px var(--shadow-color);
+  margin-bottom: 2rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
 }
 
-.tier-legend h2 {
-  font-size: 1.5rem;
-  text-align: center;
-  margin-bottom: 1.75rem;
+.tier-legend-summary {
+  list-style: none;
+  padding: 1.25rem 1.75rem;
+  font-size: 1.3rem;
+  font-weight: bold;
   color: var(--accent-color);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.tier-legend-summary::-webkit-details-marker {
+  display: none;
+}
+
+.tier-legend-summary:hover {
+  background-color: rgba(139, 0, 0, 0.04);
+}
+
+.dropdown-arrow {
+  font-size: 0.9rem;
+  transition: transform 0.2s ease;
+  color: var(--accent-color);
+}
+
+.tier-legend-dropdown[open] .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.tier-legend-content {
+  padding: 0 1.75rem 1.75rem 1.75rem;
+  border-top: 1px dashed var(--border-color);
 }
 
 .legend-list {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
+  margin-top: 1.5rem;
 }
 
 .legend-card {
@@ -471,6 +503,95 @@ body {
 }
 
 .calc-method-link {
+  text-align: center;
+  margin-top: 1.75rem;
+}
+
+.calc-method-link a {
+  color: var(--accent-color);
+  font-size: 0.95rem;
+  text-decoration: underline;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 580px) {
+  .hero-brand {
+    margin-bottom: 2.5rem;
+  }
+
+  .main-logo {
+    width: 140px;
+    margin-bottom: 1.25rem;
+  }
+
+  .brand-heading {
+    font-size: 2.1rem;
+  }
+
+  #search-form {
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  #band-input {
+    width: 100%;
+  }
+
+  #stamp-btn, .btn-stamp {
+    width: 100%;
+    text-align: center;
+  }
+
+  .search-box, .result-card, .tier-legend-dropdown {
+    padding: 1.5rem 1.2rem;
+    margin-bottom: 2.25rem;
+  }
+
+  .tier-legend-summary {
+    padding: 1rem 1.2rem;
+    font-size: 1.15rem;
+  }
+
+  .tier-legend-content {
+    padding: 0 1.2rem 1.2rem 1.2rem;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .stamp {
+    width: 160px;
+    height: 160px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Utilities & Footer */
+.hidden {
+  display: none !important;
+}
+
+footer {
+  text-align: center;
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.85rem;
+  color: #666;
+}
+
+footer a {
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+nk {
   text-align: center;
   margin-top: 1.75rem;
 }
