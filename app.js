@@ -18,6 +18,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentBandName = '';
 
+  // Load rotating audit ticker banner
+  async function loadTicker() {
+    const track = document.getElementById('ticker-track');
+    if (!track) return;
+
+    try {
+      const res = await fetch('/api/index-list');
+      const data = await res.json();
+      const bands = data.bands || [];
+
+      if (bands.length > 0) {
+        const itemsHtml = bands.map(b => `
+          <a href="index-list.html" class="ticker-item">
+            ★ <strong>${b.band_name}</strong>: <span class="ticker-score">${b.calculated_score}% PURITY</span>
+          </a>
+        `).join('');
+
+        // Duplicate string to create seamless infinite scrolling effect
+        track.innerHTML = itemsHtml + itemsHtml;
+      } else {
+        track.innerHTML = `<a href="index-list.html" class="ticker-item">★ BANDSTAMP LIVE INDEX: Audit a band to rank them on the leaderboard!</a>`;
+      }
+    } catch (e) {
+      console.warn("Ticker fetch error:", e.message);
+    }
+  }
+
+  loadTicker();
+
   stampBtn.addEventListener('click', (e) => {
     e.preventDefault();
     handleSearch();
@@ -56,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const data = await response.json();
       renderAuditResult(data);
+      loadTicker(); // Refresh ticker after challenge re-audit
     } catch (err) {
       alert(`Challenge Error: ${err.message}`);
     } finally {
@@ -87,6 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const data = await response.json();
       renderAuditResult(data);
+      loadTicker(); // Refresh ticker after new audit
     } catch (err) {
       alert(`Audit Error: ${err.message}`);
     } finally {
