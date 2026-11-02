@@ -131,7 +131,7 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* Fixed Result Card Layout */
+/* Result Card */
 .result-card {
   background-color: var(--card-bg);
   border: 2px dashed #b8ad9a;
@@ -181,7 +181,6 @@ body {
   display: block;
 }
 
-/* Rubber Stamp Overlay Positioned Over Image */
 .stamp {
   position: absolute;
   top: 15px;
@@ -204,11 +203,11 @@ body {
 .stamp.red { color: var(--stamp-red); border-color: var(--stamp-red); }
 .stamp.black { color: #111111; border-color: #111111; background-color: rgba(255, 255, 255, 0.95); }
 
-/* Score Display Removed Duplicate Text */
 .score-display {
   display: none !important;
 }
 
+/* Summary Section Preserving Paragraph Line Breaks */
 .summary {
   font-size: 1.05rem;
   border-top: 1px dashed var(--border-color);
@@ -216,6 +215,7 @@ body {
   margin-top: 1rem;
   color: #2b2b2b;
   line-height: 1.65;
+  white-space: pre-line;
 }
 
 .challenge-actions {
@@ -243,7 +243,6 @@ body {
   color: var(--text-color);
 }
 
-/* Legend Styling */
 .tier-legend {
   margin-top: 2.5rem;
   padding: 1.8rem;
