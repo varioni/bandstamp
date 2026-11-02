@@ -54,43 +54,37 @@ module.exports = async function handler(req, res) {
 
   const systemInstruction = `
     You are BandStamp lead inspector—a sharp, energetic, Pitchfork-style rock music critic. 
-    Search the web for ACTIVE/UPCOMING future live tour dates and stage lineup for: ${bandName}.
+    Audit the live lineup authenticity for: ${bandName}.
 
-    STRICT AUDIT RULES:
-    1. FUTURE TOUR CHECK:
-       - Check for upcoming/future announced shows under this official band name.
-       - Tribute shows, orchestral cover concerts, or solo member tours do NOT count as the band touring.
-       - If no active/upcoming tour exists under this name or the band is defunct/retired, set is_currently_touring = false and touring_members_present = [].
+    STRICT AUDIT & ACCURACY RULES:
+    1. HISTORICAL BASELINE MANDATE (DO NOT SKIP THIS):
+       - Define the definitive, classic breakthrough / peak commercial lineup for ${bandName}.
+       - For 80s/classic acts (e.g., Duran Duran, Scorpions), baseline_members MUST include the full classic multi-member lineup (e.g. for Duran Duran: Simon Le Bon, Nick Rhodes, John Taylor, Roger Taylor, AND Andy Taylor).
+       - Never restrict baseline_members to only the currently active touring members.
 
-    2. MEMBER AUDIT MANDATE:
-       - Identify classic breakthrough baseline members.
-       - Identify who among them is PHYSICALLY PERFORMING on stage for upcoming dates.
-       - If all baseline members are performing on stage and none are missing, touring_members_present MUST contain all baseline members.
-       - Replacement musicians are NOT baseline members and CANNOT count toward touring_members_present.
+    2. FUTURE TOUR & STAGE AUDIT:
+       - Check for active or upcoming future tour dates.
+       - If no active/upcoming tour exists under this band name, set is_currently_touring = false and touring_members_present = [].
+       - Compare current stage performers against the historical baseline_members.
+       - touring_members_present MUST ONLY contain baseline_members who are physically performing on stage. 
+       - Replacement or touring musicians DO NOT count in touring_members_present.
 
-    3. EDITORIAL SUMMARY FORMAT (MANDATORY 3 PARAGRAPHS SEPARATED BY EXPLICIT \\n\\n):
-
-       IF IS_CURRENTLY_TOURING = FALSE:
-       - Do NOT list "**On stage:**" or "**Absent/Missing:**" rosters.
-       - Paragraph 1: Confirm there are no upcoming tour dates for the band.
-       - Paragraph 2: Sharp Pitchfork closing on why the live era is over.
-
-       IF IS_CURRENTLY_TOURING = TRUE:
-       - Paragraph 1: 1-2 short sentences max confirming active tour status. STRICTLY FORBIDDEN: Do NOT list cities, venue names, or date itineraries.
-       - Paragraph 2: Roster breakdown:
-         "**On stage:** [Full Name (Instrument - Role)] joined by [Full Name (Instrument - Replacement)].\\n\\n**Absent/Missing:** [Full Name (Instrument - Role) OR 'None']."
-       - Paragraph 3: 2 sentences of direct, energetic Pitchfork-style verdict.
+    3. EDITORIAL SUMMARY FORMAT (MANDATORY 3 PARAGRAPHS SEPARATED BY \\n\\n):
+       Paragraph 1: 1-2 short sentences confirming active tour status. Do NOT list cities, venue names, or date itineraries.
+       Paragraph 2 (LINEUP BREAKDOWN):
+         "**On stage:** [Names and annotated roles]\\n\\n**Absent/Missing:** [Classic baseline members not present, e.g. Andy Taylor (Guitar - Classic Era) OR 'None']."
+       Paragraph 3: 2 sentences of sharp, energetic Pitchfork-style verdict.
 
     4. STRICT FORBIDDEN ITEMS:
        - NEVER list venue names, city lists, or date itineraries.
-       - NEVER write florid poetic clichés.
+       - NEVER output raw literal line breaks inside JSON strings. Use \\n\\n instead.
        - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
 
-    CRITICAL: Output MUST be valid single-line raw JSON only:
+    CRITICAL: Output MUST be valid single-line raw JSON only without markdown formatting:
     {
       "band_name": "Standardized Name",
       "debut_album": "Landmark Album/Era",
-      "baseline_members": ["Member 1", "Member 2"],
+      "baseline_members": ["Member 1", "Member 2", "Member 3"],
       "touring_members_present": ["Member 1", "Member 2"],
       "frontman_name": "Original Lead Singer",
       "frontman_present": true,
@@ -118,7 +112,7 @@ module.exports = async function handler(req, res) {
         model: "perplexity/sonar",
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Search active upcoming tour dates and live touring lineup for: ${bandName}` }
+          { role: "user", content: `Perform lineup accuracy audit and search active tour dates for: ${bandName}` }
         ],
         max_tokens: 800,
         temperature: 0.0
@@ -172,17 +166,6 @@ module.exports = async function handler(req, res) {
 
     if (data.is_currently_touring === false) {
       touringList = [];
-    } else {
-      const summaryText = (data.editorial_summary || '').toLowerCase();
-      if (touringList.length === 0 && baselineList.length > 0) {
-        if (
-          summaryText.includes('absent/missing: none') || 
-          summaryText.includes('none confirmed') ||
-          summaryText.includes('no missing members')
-        ) {
-          touringList = [...baselineList];
-        }
-      }
     }
 
     const totalBase = baselineList.length || 1;
