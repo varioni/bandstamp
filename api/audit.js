@@ -62,7 +62,13 @@ module.exports = async function handler(req, res) {
        - Tribute shows, orchestral cover concerts, or solo member tours do NOT count as the band touring.
        - If no active/upcoming tour exists under this name or the band is defunct/retired, set is_currently_touring = false and touring_members_present = [].
 
-    2. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
+    2. MEMBER AUDIT MANDATE:
+       - Identify classic breakthrough baseline members.
+       - Identify who among them is PHYSICALLY PERFORMING on stage for upcoming dates.
+       - If all baseline members are performing on stage and none are missing, touring_members_present MUST contain all baseline members.
+       - Replacement musicians are NOT baseline members and CANNOT count toward touring_members_present.
+
+    3. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
 
        IF IS_CURRENTLY_TOURING = FALSE (SHORT 1-2 PARAGRAPH SUMMARY):
        - Do NOT list "On stage:" or "Absent/Missing:" rosters.
@@ -73,10 +79,10 @@ module.exports = async function handler(req, res) {
        - Paragraph 1: State upcoming tour schedule context.
        - Paragraph 2 (ROSTER BREAKDOWN WITH ANNOTATED ROLES):
          "On stage: [Full Name (Instrument - Role)] joined by [Full Name (Instrument - Replacement)].
-         Absent/Missing: [Full Name (Instrument - Role)]."
+         Absent/Missing: [Full Name (Instrument - Role) OR 'None']."
        - Paragraph 3: 2 sentences of direct, energetic Pitchfork-style verdict.
 
-    3. STRICT FORBIDDEN ITEMS:
+    4. STRICT FORBIDDEN ITEMS:
        - NEVER output raw literal line breaks inside JSON strings. Use \\n\\n instead.
        - NEVER write florid poetic clichés ("corporate chassis humming", "real alchemy", "museum-piece cosplay", "database ghosts").
        - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
@@ -86,10 +92,10 @@ module.exports = async function handler(req, res) {
       "band_name": "Standardized Name",
       "debut_album": "Landmark Album/Era",
       "baseline_members": ["Member 1", "Member 2"],
-      "touring_members_present": [],
+      "touring_members_present": ["Member 1", "Member 2"],
       "frontman_name": "Original Lead Singer",
-      "frontman_present": false,
-      "is_currently_touring": false,
+      "frontman_present": true,
+      "is_currently_touring": true,
       "editorial_summary": "Short paragraph 1\\n\\nShort paragraph 2..."
     }
   `;
@@ -153,7 +159,22 @@ module.exports = async function handler(req, res) {
 
     const baselineList = data.baseline_members || [];
     let touringList = data.touring_members_present || [];
-    if (data.is_currently_touring === false) touringList = [];
+
+    if (data.is_currently_touring === false) {
+      touringList = [];
+    } else {
+      // Fallback: If touring array came back empty but summary confirms no core members are absent
+      const summaryText = (data.editorial_summary || '').toLowerCase();
+      if (touringList.length === 0 && baselineList.length > 0) {
+        if (
+          summaryText.includes('absent/missing: none') || 
+          summaryText.includes('none confirmed') ||
+          summaryText.includes('no missing members')
+        ) {
+          touringList = [...baselineList];
+        }
+      }
+    }
 
     const totalBase = baselineList.length || 1;
     const presentBase = touringList.length;
@@ -190,35 +211,4 @@ module.exports = async function handler(req, res) {
       tier_label = "Tier 4: Solo Project in Disguise"; 
       badge_type = "orange"; 
     } else { 
-      tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; 
-      badge_type = "red"; 
-    }
-
-    let summary = (data.editorial_summary || `Auditing ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
-
-    const resultPayload = {
-      band_name: data.band_name,
-      currently_touring: data.is_currently_touring,
-      calculated_score: finalScore,
-      tier_label: tier_label,
-      badge_type: badge_type,
-      summary: summary
-    };
-
-    if (KV_URL && KV_TOKEN) {
-      const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
-      fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-      }).catch(e => console.warn("Redis write warning:", e.message));
-    }
-
-    return res.status(200).json({ ...resultPayload, cached: false });
-
-  } catch (err) {
-    if (aiTimer) clearTimeout(aiTimer);
-    if (err.name === 'AbortError') {
-      return res.status(504).json({ error: "Audit request timed out searching web." });
-    }
-    return res.status(500).json({ error: `Server Exception: ${err.message}` });
-  }
-};
+      tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)";
