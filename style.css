@@ -170,4 +170,260 @@ body {
   border-radius: 4px;
 }
 
-/* Photo
+/* Photo Wrapper */
+.image-wrapper {
+  position: relative;
+  width: 100%;
+  max-height: 400px;
+  overflow: hidden;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Large, Ultra-Visible Circular Rubber Stamp Seal */
+.stamp {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-family: 'Special Elite', monospace;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  line-height: 1.2;
+  padding: 12px;
+  box-sizing: border-box;
+
+  /* Thick concentric double-ring borders */
+  border: 6px double currentColor;
+  box-shadow: 0 0 0 3px currentColor inset, 0 4px 20px rgba(0, 0, 0, 0.6);
+
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 10;
+  animation: stampIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes stampIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.2) rotate(-28deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(-12deg);
+  }
+}
+
+/* Color Tiers with Opaque Backdrops for Maximum Readability */
+.stamp.gold {
+  color: #ffd700;
+  background: rgba(30, 25, 10, 0.85);
+  border-color: #ffd700;
+}
+
+.stamp.green {
+  color: #4caf50;
+  background: rgba(10, 30, 15, 0.85);
+  border-color: #4caf50;
+}
+
+.stamp.yellow {
+  color: #ffeb3b;
+  background: rgba(35, 30, 5, 0.85);
+  border-color: #ffeb3b;
+}
+
+.stamp.orange {
+  color: #ff9800;
+  background: rgba(35, 20, 5, 0.85);
+  border-color: #ff9800;
+}
+
+.stamp.red {
+  color: #ff5252;
+  background: rgba(40, 10, 10, 0.85);
+  border-color: #ff5252;
+}
+
+.stamp.black {
+  color: #ffffff;
+  background: rgba(15, 15, 15, 0.90);
+  border-color: #ffffff;
+}
+
+/* Editorial Summary Output & Paragraph Breaks */
+.audit-summary {
+  font-size: 0.95rem;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.audit-summary p {
+  margin-bottom: 1.2rem;
+  line-height: 1.6;
+}
+
+.audit-summary p:last-child {
+  margin-bottom: 0;
+}
+
+.audit-summary strong {
+  font-weight: bold;
+  color: #000;
+}
+
+/* Challenge Section */
+.challenge-section {
+  text-align: center;
+  border-top: 1px dashed var(--border-color);
+  padding-top: 1.2rem;
+}
+
+.btn-challenge-toggle {
+  background-color: var(--accent-color) !important;
+  color: #ffffff !important;
+  border: 1px solid #5a0000 !important;
+  padding: 0.5rem 1.2rem;
+  font-family: 'Special Elite', monospace;
+  font-size: 0.9rem;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-challenge-toggle:hover {
+  background-color: #6b0000 !important;
+}
+
+.challenge-box {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+#challenge-input {
+  width: 100%;
+  height: 80px;
+  padding: 0.75rem;
+  font-family: 'Special Elite', monospace;
+  font-size: 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  resize: vertical;
+}
+
+/* Tier Legend Section */
+.tier-legend {
+  background-color: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+.tier-legend h2 {
+  font-size: 1.4rem;
+  text-align: center;
+  margin-bottom: 1.2rem;
+  color: var(--accent-color);
+}
+
+.legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.legend-card {
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  background-color: #fff;
+}
+
+.legend-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.3rem;
+}
+
+.legend-badge {
+  font-weight: bold;
+  font-size: 0.85rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+}
+
+.legend-card.gold .legend-badge { color: #c59b27; }
+.legend-card.green .legend-badge { color: #2e7d32; }
+.legend-card.yellow .legend-badge { color: #f57f17; }
+.legend-card.orange .legend-badge { color: #e65100; }
+.legend-card.red .legend-badge { color: #b71c1c; }
+.legend-card.black .legend-badge { color: #111111; }
+
+.legend-title {
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.legend-desc {
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.calc-method-link {
+  text-align: center;
+  margin-top: 1.2rem;
+}
+
+.calc-method-link a {
+  color: var(--accent-color);
+  font-size: 0.9rem;
+  text-decoration: underline;
+}
+
+/* Utilities & Footer */
+.hidden {
+  display: none !important;
+}
+
+footer {
+  text-align: center;
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.85rem;
+  color: #666;
+}
+
+footer a {
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
