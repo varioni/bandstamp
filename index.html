@@ -30,6 +30,49 @@
       <button type="button" id="stamp-btn" class="btn-submit">Inspect Lineup</button>
     </form>
 
+    <!-- Loading Indicator (Placed above Legend) -->
+    <div id="loading" class="spinner-container hidden">
+      <div class="spinner"></div>
+      <p>Auditing lineup...</p>
+    </div>
+
+    <!-- Main Result Card (Placed above Legend) -->
+    <div id="result-card" class="result-card hidden">
+      <div class="card-header">
+        <h2 id="band-name-heading"></h2>
+        <span id="tier-badge" class="badge"></span>
+      </div>
+
+      <div class="image-wrapper">
+        <img id="band-photo" src="" alt="Band Photo" />
+        <div id="stamp-overlay" class="stamp"></div>
+      </div>
+
+      <div class="score-display">
+        <span id="score-value"></span>
+      </div>
+
+      <p id="audit-summary" class="summary"></p>
+
+      <!-- Challenge Actions -->
+      <div class="challenge-actions">
+        <button type="button" id="challenge-toggle-btn" class="btn-submit">
+          Challenge This Audit
+        </button>
+      </div>
+
+      <!-- Challenge Input Box -->
+      <div id="challenge-box" class="challenge-box hidden">
+        <textarea 
+          id="challenge-input" 
+          placeholder="Provide evidence or correction (e.g., 'Chester Bennington passed away and Emily Armstrong replaced him on vocals')..."
+        ></textarea>
+        <button type="button" id="submit-challenge-btn" class="btn-submit">
+          Submit Re-Audit Challenge
+        </button>
+      </div>
+    </div>
+
     <!-- Scoring Tiers Legend -->
     <section class="tier-legend">
       <h2>Scoring Tiers & Criteria</h2>
@@ -81,49 +124,6 @@
         <a href="about.html">View full calculation method & rules &rarr;</a>
       </div>
     </section>
-
-    <!-- Loading Indicator -->
-    <div id="loading" class="spinner-container hidden">
-      <div class="spinner"></div>
-      <p>Auditing lineup...</p>
-    </div>
-
-    <!-- Main Result Card -->
-    <div id="result-card" class="result-card hidden">
-      <div class="card-header">
-        <h2 id="band-name-heading"></h2>
-        <span id="tier-badge" class="badge"></span>
-      </div>
-
-      <div class="image-wrapper">
-        <img id="band-photo" src="" alt="Band Photo" />
-        <div id="stamp-overlay" class="stamp"></div>
-      </div>
-
-      <div class="score-display">
-        <span id="score-value"></span>
-      </div>
-
-      <p id="audit-summary" class="summary"></p>
-
-      <!-- Challenge Actions -->
-      <div class="challenge-actions">
-        <button type="button" id="challenge-toggle-btn" class="btn-submit">
-          Challenge This Audit
-        </button>
-      </div>
-
-      <!-- Challenge Input Box -->
-      <div id="challenge-box" class="challenge-box hidden">
-        <textarea 
-          id="challenge-input" 
-          placeholder="Provide evidence or correction (e.g., 'Chester Bennington passed away and Emily Armstrong replaced him on vocals')..."
-        ></textarea>
-        <button type="button" id="submit-challenge-btn" class="btn-submit">
-          Submit Re-Audit Challenge
-        </button>
-      </div>
-    </div>
   </main>
 
   <footer>
