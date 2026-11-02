@@ -97,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderAuditResult(data) {
     bandHeading.textContent = data.band_name || currentBandName;
     tierBadge.textContent = data.tier_label || 'Audit Result';
+    tierBadge.className = `tier-badge-text ${data.badge_type || 'gold'}`;
 
     const encodedName = encodeURIComponent(data.band_name || currentBandName);
     bandPhoto.src = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodedName}.jpg`;
@@ -109,17 +110,24 @@ document.addEventListener('DOMContentLoaded', () => {
       stampOverlay.className = 'stamp black';
     } else {
       stampOverlay.textContent = `${data.calculated_score}% PURITY`;
-      stampOverlay.className = `stamp ${data.badge_type || 'red'}`;
+      stampOverlay.className = `stamp ${data.badge_type || 'gold'}`;
     }
 
-    // Process summary text: convert markdown bold & build HTML paragraphs
+    // Bold replacement and paragraph splitting
     let summaryText = data.summary || '';
     summaryText = summaryText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     summaryText = summaryText.replace(/(?:<strong>)?On stage:(?:<\/strong>)?/gi, '<strong>On stage:</strong>');
     summaryText = summaryText.replace(/(?:<strong>)?Absent\/Missing:(?:<\/strong>)?/gi, '<strong>Absent/Missing:</strong>');
 
-    const paragraphs = summaryText.split(/\\n\\n|\n\n/).filter(p => p.trim().length > 0);
-    auditSummary.innerHTML = paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
+    // Split text into distinct paragraphs using line break indicators
+    const paragraphBlocks = summaryText
+      .split(/(?:\\n\\n|\n\n)/)
+      .map(p => p.trim())
+      .filter(p => p.length > 0);
+
+    auditSummary.innerHTML = paragraphBlocks
+      .map(p => `<p>${p}</p>`)
+      .join('');
 
     resultCard.classList.remove('hidden');
   }
