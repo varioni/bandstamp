@@ -64,9 +64,7 @@ module.exports = async function handler(req, res) {
     const aiController = new AbortController();
     aiTimer = setTimeout(() => aiController.abort(), 20000);
 
-    const openRouterEndpoint = "https://openrouter.ai/api/v1/chat/completions";
-
-    const response = await fetch(openRouterEndpoint, {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
