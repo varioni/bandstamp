@@ -57,40 +57,40 @@ module.exports = async function handler(req, res) {
     Search the web for ACTIVE/UPCOMING future live tour dates and stage lineup for: ${bandName}.
 
     STRICT AUDIT RULES:
-    1. FUTURE TOUR CHECK: Search for upcoming/future announced shows. If no future tour dates exist or the band is defunct/dormant, set is_currently_touring = false and touring_members_present = [].
-    
-    2. MEMBER AUDIT MANDATE: 
-       - Identify classic breakthrough baseline members.
-       - Identify who among them is PHYSICALLY PERFORMING on stage for upcoming dates.
-       - Replacement musicians are NOT baseline members and CANNOT count toward touring_members_present.
+    1. FUTURE TOUR CHECK:
+       - Check for upcoming/future announced shows under this official band name.
+       - Tribute shows, orchestral cover concerts, or solo member tours do NOT count as the band touring.
+       - If no active/upcoming tour exists under this name or the band is defunct/retired, set is_currently_touring = false and touring_members_present = [].
 
-    3. EDITORIAL SUMMARY FORMAT (MANDATORY 3 PARAGRAPHS SEPARATED BY REPLICATED ESCAPED NEWLINES \\n\\n):
-       Paragraph 1: State upcoming tour status and schedule context concisely.
-       
-       Paragraph 2 (ROSTER BREAKDOWN WITH ROLES):
-       "On stage: [Full Name (Instrument - Founding Member / Classic Era Member)] joined by [Full Name (Instrument - Touring Replacement)]. 
-       Absent/Missing: [Full Name (Instrument - Founding Member / Deceased / Opted Out)]."
-       
-       Paragraph 3 (EDITORIAL VERDICT):
-       2 sentences of sharp, energetic Pitchfork-style critique on lineup authenticity. Direct, punchy, and grounded in raw live performance reality.
+    2. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
 
-    4. STRICT FORBIDDEN ITEMS:
-       - NEVER use raw literal line breaks inside JSON strings. Use \\n\\n instead.
-       - NEVER use florid poetic clichés ("corporate chassis humming", "bruised chemistry", "real alchemy", "museum-piece cosplay", "fold its own tent").
-       - NEVER list names without explicitly stating their role/status.
+       IF IS_CURRENTLY_TOURING = FALSE (SHORT 1-2 PARAGRAPH SUMMARY):
+       - Do NOT list "On stage:" or "Absent/Missing:" rosters.
+       - Paragraph 1 (1-2 short sentences): Confirm there are no upcoming tour dates for the band. Mention briefly if surviving founders perform solo or if the project is permanently defunct.
+       - Paragraph 2 (1 short sentence): Sharp, punchy Pitchfork closing on why the live era is over.
+
+       IF IS_CURRENTLY_TOURING = TRUE (MANDATORY 3 PARAGRAPHS SEPARATED BY \\n\\n):
+       - Paragraph 1: State upcoming tour schedule context.
+       - Paragraph 2 (ROSTER BREAKDOWN WITH ANNOTATED ROLES):
+         "On stage: [Full Name (Instrument - Role)] joined by [Full Name (Instrument - Replacement)].
+         Absent/Missing: [Full Name (Instrument - Role)]."
+       - Paragraph 3: 2 sentences of direct, energetic Pitchfork-style verdict.
+
+    3. STRICT FORBIDDEN ITEMS:
+       - NEVER output raw literal line breaks inside JSON strings. Use \\n\\n instead.
+       - NEVER write florid poetic clichés ("corporate chassis humming", "real alchemy", "museum-piece cosplay", "database ghosts").
        - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
-       - NEVER write "database ghosts", "system audit", "AI", or raw score percentage math.
 
     CRITICAL: Output MUST be valid single-line raw JSON only:
     {
       "band_name": "Standardized Name",
       "debut_album": "Landmark Album/Era",
       "baseline_members": ["Member 1", "Member 2"],
-      "touring_members_present": ["Member 1"],
+      "touring_members_present": [],
       "frontman_name": "Original Lead Singer",
-      "frontman_present": true,
-      "is_currently_touring": true,
-      "editorial_summary": "Paragraph 1\\n\\nOn stage: ... Absent/Missing: ...\\n\\nParagraph 3 verdict..."
+      "frontman_present": false,
+      "is_currently_touring": false,
+      "editorial_summary": "Short paragraph 1\\n\\nShort paragraph 2..."
     }
   `;
 
@@ -132,7 +132,6 @@ module.exports = async function handler(req, res) {
     const jsonMatch = textOutput.match(/\{[\s\S]*\}/);
     if (jsonMatch) textOutput = jsonMatch[0];
 
-    // Sanitize unescaped newlines within JSON string values before parsing
     textOutput = textOutput.replace(/(\r\n|\n|\r)/g, "\\n");
 
     const data = JSON.parse(textOutput);
