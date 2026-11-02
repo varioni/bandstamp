@@ -71,15 +71,15 @@ module.exports = async function handler(req, res) {
     3. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
 
        IF IS_CURRENTLY_TOURING = FALSE (SHORT 1-2 PARAGRAPH SUMMARY):
-       - Do NOT list "On stage:" or "Absent/Missing:" rosters.
+       - Do NOT list "**On stage:**" or "**Absent/Missing:**" rosters.
        - Paragraph 1 (1-2 short sentences): Confirm there are no upcoming tour dates for the band. Mention briefly if surviving founders perform solo or if the project is permanently defunct.
        - Paragraph 2 (1 short sentence): Sharp, punchy Pitchfork closing on why the live era is over.
 
        IF IS_CURRENTLY_TOURING = TRUE (MANDATORY 3 PARAGRAPHS SEPARATED BY \\n\\n):
        - Paragraph 1: State upcoming tour schedule context.
-       - Paragraph 2 (ROSTER BREAKDOWN WITH ANNOTATED ROLES):
-         "On stage: [Full Name (Instrument - Role)] joined by [Full Name (Instrument - Replacement)].
-         Absent/Missing: [Full Name (Instrument - Role) OR 'None']."
+       - Paragraph 2 (ROSTER BREAKDOWN WITH ANNOTATED ROLES AND BOLD HEADERS):
+         "**On stage:** [Full Name (Instrument - Role)] joined by [Full Name (Instrument - Replacement)].
+         **Absent/Missing:** [Full Name (Instrument - Role) OR 'None']."
        - Paragraph 3: 2 sentences of direct, energetic Pitchfork-style verdict.
 
     4. STRICT FORBIDDEN ITEMS:
@@ -96,7 +96,7 @@ module.exports = async function handler(req, res) {
       "frontman_name": "Original Lead Singer",
       "frontman_present": true,
       "is_currently_touring": true,
-      "editorial_summary": "Short paragraph 1\\n\\nShort paragraph 2..."
+      "editorial_summary": "Short paragraph 1\\n\\n**On stage:** ... **Absent/Missing:** ...\\n\\nShort paragraph 3..."
     }
   `;
 
@@ -157,76 +157,13 @@ module.exports = async function handler(req, res) {
       try {
         data = JSON.parse(textOutput);
       } catch (secondErr) {
-        // Safe fallback if raw string is unsalvageable
         data = {
           band_name: bandName,
           baseline_members: [],
           touring_members_present: [],
           frontman_present: true,
           is_currently_touring: true,
-          editorial_summary: `Lineup inspection completed for ${bandName}.`
-        };
-      }
-    }
-
-    const baselineList = data.baseline_members || [];
-    let touringList = data.touring_members_present || [];
-
-    if (data.is_currently_touring === false) {
-      touringList = [];
-    } else {
-      const summaryText = (data.editorial_summary || '').toLowerCase();
-      if (touringList.length === 0 && baselineList.length > 0) {
-        if (
-          summaryText.includes('absent/missing: none') || 
-          summaryText.includes('none confirmed') ||
-          summaryText.includes('no missing members')
-        ) {
-          touringList = [...baselineList];
-        }
-      }
-    }
-
-    const totalBase = baselineList.length || 1;
-    const presentBase = touringList.length;
-
-    let baseScore = Math.round((presentBase / totalBase) * 100);
-    let finalScore = baseScore;
-
-    if (presentBase === 0) {
-      finalScore = 0;
-    } else if (presentBase === 1 && !data.frontman_present) {
-      finalScore = 25;
-    } else if (!data.frontman_present && presentBase > 1) {
-      finalScore -= 10;
-    }
-
-    finalScore = Math.max(0, Math.min(100, finalScore));
-
-    let tier_label = "", badge_type = "";
-
-    if (data.is_currently_touring === false) {
-      tier_label = "Currently Not Touring";
-      badge_type = "black";
-      finalScore = 0;
-    } else if (finalScore === 100) { 
-      tier_label = "Tier 1: Unbroken Circle"; 
-      badge_type = "gold"; 
-    } else if (finalScore >= 75) { 
-      tier_label = "Tier 2: Near-Mint Vintage"; 
-      badge_type = "green"; 
-    } else if (finalScore >= 50) { 
-      tier_label = "Tier 3: Co-Founder Equity"; 
-      badge_type = "yellow"; 
-    } else if (finalScore >= 25) { 
-      tier_label = "Tier 4: Solo Project in Disguise"; 
-      badge_type = "orange"; 
-    } else { 
-      tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; 
-      badge_type = "red"; 
-    }
-
-    let summary = (data.editorial_summary || `Auditing ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
+          editorial_summary: `Lineup inspection completed for ${bandName}.` }; } }  const baselineList = data.baseline_members \vert{}\vert{} []; let touringList = data.touring_members_present \vert{}\vert{} [];  if (data.is_currently_touring === false) { touringList = []; } else { const summaryText = (data.editorial_summary \vert{}\vert{} '').toLowerCase(); if (touringList.length === 0 && baselineList.length > 0) { if ( summaryText.includes('absent/missing: none') \vert{}\vert{} summaryText.includes('none confirmed') \vert{}\vert{} summaryText.includes('no missing members') ) { touringList = [...baselineList]; } } }  const totalBase = baselineList.length \vert{}\vert{} 1; const presentBase = touringList.length;  let baseScore = Math.round((presentBase / totalBase) * 100); let finalScore = baseScore;  if (presentBase === 0) { finalScore = 0; } else if (presentBase === 1 && !data.frontman_present) { finalScore = 25; } else if (!data.frontman_present && presentBase > 1) { finalScore -= 10; }  finalScore = Math.max(0, Math.min(100, finalScore));  let tier_label = "", badge_type = "";  if (data.is_currently_touring === false) { tier_label = "Currently Not Touring"; badge_type = "black"; finalScore = 0; } else if (finalScore === 100) { tier_label = "Tier 1: Unbroken Circle"; badge_type = "gold"; } else if (finalScore >= 75) { tier_label = "Tier 2: Near-Mint Vintage"; badge_type = "green"; } else if (finalScore >= 50) { tier_label = "Tier 3: Co-Founder Equity"; badge_type = "yellow"; } else if (finalScore >= 25) { tier_label = "Tier 4: Solo Project in Disguise"; badge_type = "orange"; } else { tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; badge_type = "red"; }  let summary = (data.editorial_summary \vert{}\vert{} `Auditing ${data.band_name}: ${presentBase} of${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
 
     const resultPayload = {
       band_name: data.band_name || bandName,
@@ -239,8 +176,7 @@ module.exports = async function handler(req, res) {
 
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
-      fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
+      fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, { headers: { Authorization: `Bearer ${KV_TOKEN}` }
       }).catch(e => console.warn("Redis write warning:", e.message));
     }
 
