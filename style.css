@@ -1,410 +1,252 @@
-/* General Page Styling */
-body {
-  font-family: 'Special Elite', system-ui, -apple-system, sans-serif;
-  background-color: #f4f1ea;
-  background-image: radial-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 0);
-  background-size: 24px 24px;
-  color: #2b2b2b;
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&display=swap');
+
+:root {
+  --bg-color: #f4f1ea;
+  --text-color: #2b2b2b;
+  --card-bg: #ffffff;
+  --border-color: #d1c7b7;
+  --accent-color: #8b0000;
+  --stamp-green: #1b4d3e;
+  --stamp-amber: #b45309;
+  --stamp-red: #991b1b;
+}
+
+* {
+  box-sizing: border-box;
   margin: 0;
-  padding: 30px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  padding: 0;
+}
+
+body {
+  font-family: 'Special Elite', system-ui, -apple-system, monospace, sans-serif;
+  background-color: var(--bg-color);
+  background-image: radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 0);
+  background-size: 24px 24px;
+  color: var(--text-color);
   min-height: 100vh;
+  line-height: 1.6;
 }
 
-/* Header & Logo Setup */
 header {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.logo-container {
+  background-color: #eae5d9;
+  border-bottom: 2px solid #c5bcab;
+  padding: 1rem 2rem;
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px; /* Reduced gap since the logo is bigger */
 }
 
-.site-logo {
-  width: 170px; /* BUMPED UP from 110px to make the logo bigger */
-  height: auto;
-  filter: drop-shadow(0px 3px 6px rgba(139, 0, 0, 0.15));
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--text-color);
+}
+
+.brand img.logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
 }
 
 .brand-title {
-  margin: 0;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 2.8rem; /* REDUCED from 4.2rem to make the text header smaller */
-  color: #8b0000;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  line-height: 0.9;
-  text-shadow: 1px 2px 0px rgba(0, 0, 0, 0.07);
 }
 
-.tagline {
-  font-family: 'Special Elite', cursive;
-  font-size: 1.05rem;
-  color: #4f4f4f;
-  margin-top: 10px;
+nav a {
+  color: #555;
+  text-decoration: none;
+  margin-left: 1.5rem;
+  font-size: 1.1rem;
 }
 
-/* Main Container & Search Bar */
-main {
-  width: 100%;
-  max-width: 600px;
+nav a:hover, nav a.active {
+  color: var(--accent-color);
+  text-decoration: underline;
 }
 
-.search-box {
+.container {
+  max-width: 800px;
+  margin: 3rem auto;
+  padding: 0 1.5rem;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  color: #1a1a1a;
+  letter-spacing: -1px;
+}
+
+.hero p {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.search-form {
   display: flex;
   gap: 10px;
-  margin-bottom: 25px;
+  margin-top: 1.5rem;
+  justify-content: center;
 }
 
-input[type="text"] {
-  flex: 1;
-  font-family: inherit;
-  padding: 14px 20px;
+.search-input {
+  font-family: 'Special Elite', monospace;
+  width: 70%;
+  padding: 0.8rem 1rem;
   font-size: 1.1rem;
-  background-color: #fff;
-  border: 2px solid #bda893;
-  border-radius: 6px;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  background-color: #faf8f5;
+  color: var(--text-color);
+}
+
+.search-input:focus {
   outline: none;
-  box-shadow: inset 0 1px 4px rgba(0,0,0,0.05);
+  border-color: var(--accent-color);
 }
 
-input[type="text"]:focus {
-  border-color: #8b0000;
-  box-shadow: inset 0 1px 4px rgba(0,0,0,0.05), 0 0 0 3px rgba(139, 0, 0, 0.1);
-}
-
-button {
-  font-family: 'Bebas Neue', sans-serif;
-  padding: 0 24px;
-  font-size: 1.4rem;
-  letter-spacing: 1px;
-  color: #ffffff;
-  background-color: #8b0000;
+.btn-submit {
+  font-family: 'Special Elite', monospace;
+  padding: 0.8rem 1.5rem;
+  font-size: 1.1rem;
+  background-color: var(--accent-color);
+  color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: 0 3px 0 #5e0000, 0 4px 6px rgba(0,0,0,0.1);
+  transition: background-color 0.2s;
 }
 
-button:hover {
-  background-color: #9d0a0a;
-  transform: translateY(-1px);
+.btn-submit:hover {
+  background-color: #6b0000;
+}
+
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .hidden {
   display: none !important;
 }
 
-/* Loading State */
-#loading {
+.spinner-container {
   text-align: center;
-  font-family: 'Special Elite', cursive;
-  font-size: 1.1rem;
-  color: #8b0000;
-  margin: 20px 0;
-  animation: pulse 1.5s infinite ease-in-out;
+  margin: 2rem 0;
 }
 
-@keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
+.spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 1rem;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-left-color: var(--accent-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
-/* Band Result Card */
-.card {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(43, 40, 35, 0.12);
-  overflow: hidden;
-  margin-bottom: 30px;
-  border: 1px solid #d4c8b9;
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.result-card {
+  background-color: var(--card-bg);
+  border: 2px dashed #b8ad9a;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-top: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.badge {
+  font-size: 0.9rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: #faf8f5;
+  font-style: italic;
 }
 
 .image-wrapper {
   position: relative;
-  width: 100%;
-  height: 350px;
-  background-color: #e8e4db;
-  overflow: hidden;
+  margin: 1.5rem 0;
+  text-align: center;
 }
 
 .image-wrapper img {
-  width: 100%;
-  height: 100%;
+  max-width: 100%;
+  max-height: 400px;
   object-fit: cover;
-  display: block;
-}
-
-.card-details {
-  padding: 25px;
-}
-
-.card-details h2 {
-  margin-top: 0;
-  margin-bottom: 8px;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 2.5rem;
-  color: #1a1a1a;
-  text-transform: uppercase;
-}
-
-.badge {
-  display: inline-block;
-  font-family: 'Special Elite', cursive;
-  font-size: 0.85rem;
-  font-weight: bold;
-  padding: 6px 12px;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  margin-bottom: 10px;
-  background-color: #2b2b2b;
-  color: #fff;
+}
+
+.stamp {
+  display: inline-block;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  border: 3px double currentColor;
+  padding: 0.5rem 1rem;
   text-transform: uppercase;
+  font-weight: bold;
+  font-size: 1.2rem;
+  letter-spacing: 1px;
+  transform: rotate(-5deg);
+  background-color: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.stamp.gold, .stamp.green {
+  color: var(--stamp-green);
+  border-color: var(--stamp-green);
+}
+
+.stamp.yellow, .stamp.orange {
+  color: var(--stamp-amber);
+  border-color: var(--stamp-amber);
+}
+
+.stamp.red {
+  color: var(--stamp-red);
+  border-color: var(--stamp-red);
 }
 
 .score-display {
-  font-size: 1.2rem;
-  margin: 10px 0;
-}
-
-#score-value {
-  font-weight: bold;
-  color: #8b0000;
-  font-size: 1.3rem;
-}
-
-#audit-summary {
-  font-family: inherit;
-  font-size: 0.95rem;
-  line-height: 1.65;
-  color: #3a3a3a;
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px dashed #d4c8b9;
-}
-
-/* Rubber Stamp Overlay */
-.stamp {
-  position: absolute;
-  top: 25px;
-  right: 25px;
-  padding: 10px 18px;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.5rem;
-  font-weight: bold;
-  text-transform: uppercase;
-  border-style: solid;
-  border-width: 4px;
-  border-radius: 8px;
-  transform: rotate(-14deg);
-  opacity: 0.95;
-  letter-spacing: 1.5px;
-  background-color: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-}
-
-.stamp.gold { color: #b8860b; border-color: #b8860b; }
-.stamp.green { color: #2e8b57; border-color: #2e8b57; }
-.stamp.yellow { color: #d99b00; border-color: #d99b00; }
-.stamp.orange { color: #d2691e; border-color: #d2691e; }
-.stamp.red { color: #b22222; border-color: #b22222; }
-
-/* Permanent Scorecard Legend Section */
-.scorecard-legend {
-  background: #ffffff;
-  border: 1px solid #d4c8b9;
-  border-radius: 10px;
-  padding: 20px;
-  margin-top: 15px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.04);
-}
-
-.legend-title {
-  font-family: 'Bebas Neue', sans-serif;
   font-size: 1.8rem;
-  color: #8b0000;
-  margin: 0 0 15px 0;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  text-align: center;
-  border-bottom: 2px solid #f4f1ea;
-  padding-bottom: 8px;
-}
-
-.legend-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 10px 12px;
-  border-radius: 6px;
-  border-left: 5px solid #2b2b2b;
-  background-color: #faf8f5;
-}
-
-.legend-score {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.4rem;
-  min-width: 80px;
-  text-align: center;
-  padding: 4px 8px;
-  border-radius: 4px;
-  color: #fff;
-}
-
-.legend-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.legend-name {
   font-weight: bold;
-  font-size: 0.95rem;
-  color: #1a1a1a;
+  color: var(--accent-color);
+  margin-bottom: 1rem;
 }
 
-.legend-desc {
-  font-size: 0.8rem;
-  color: #666;
-  margin-top: 2px;
-}
-
-/* Tier Colors for Scorecard Items */
-.tier-gold { border-left-color: #b8860b; }
-.tier-gold .legend-score { background-color: #b8860b; }
-
-.tier-green { border-left-color: #2e8b57; }
-.tier-green .legend-score { background-color: #2e8b57; }
-
-.tier-yellow { border-left-color: #d99b00; }
-.tier-yellow .legend-score { background-color: #d99b00; }
-
-.tier-orange { border-left-color: #d2691e; }
-.tier-orange .legend-score { background-color: #d2691e; }
-
-.tier-red { border-left-color: #b22222; }
-.tier-red .legend-score { background-color: #b22222; }
-
-footer {
-  margin-top: 40px;
-  padding: 20px 0;
-  font-size: 0.9rem;
-  color: #666;
-  text-align: center;
-  border-top: 1px solid #d4c8b9;
-  width: 100%;
-}
-
-footer a {
-  color: #8b0000;
-  text-decoration: none;
-  font-weight: bold;
-  transition: color 0.15s ease;
-}
-
-footer a:hover {
-  text-decoration: underline;
-  color: #a00000;
-}
-
-/* Score Calculation Guide Link */
-.guide-link-container {
-  text-align: center;
-  margin-top: 20px;
-  margin-bottom: 10px;
-}
-
-.guide-link {
-  font-family: 'Special Elite', cursive;
-  font-size: 0.95rem;
-  color: #8b0000;
-  text-decoration: none;
-  font-weight: bold;
-  letter-spacing: 0.5px;
-  transition: all 0.15s ease;
-}
-
-.guide-link:hover {
-  text-decoration: underline;
-  color: #a00000;
-}
-/* Challenge & Re-Audit UI */
-.challenge-toggle-btn {
-  background: none;
-  border: none;
-  color: #8b0000;
-  font-family: 'Special Elite', cursive;
-  font-size: 0.85rem;
-  text-decoration: underline;
-  cursor: pointer;
-  margin-top: 15px;
-  padding: 0;
-  display: block;
-}
-
-.challenge-toggle-btn:hover {
-  color: #a00000;
-}
-
-.challenge-box {
-  margin-top: 12px;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.challenge-box.hidden {
-  display: none;
-}
-
-.challenge-box input {
-  flex: 1;
-  min-width: 200px;
-  padding: 8px 12px;
-  border: 1px solid #d4c8b9;
-  border-radius: 4px;
-  font-family: 'Special Elite', cursive;
-  font-size: 0.85rem;
-  background-color: #faf8f5;
-}
-
-.challenge-box button {
-  background-color: #8b0000;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 14px;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1rem;
-  letter-spacing: 1px;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.challenge-box button:hover {
-  background-color: #a00000;
-}
-
-.hidden {
-  display: none !important;
+.summary {
+  font-size: 1.05rem;
+  border-top: 1px dashed var(--border-color);
+  padding-top: 1rem;
 }
 
 .challenge-actions {
   margin-top: 1.5rem;
   padding-top: 1rem;
-  border-top: 1px dashed #d1c7b7;
+  border-top: 1px dashed var(--border-color);
   text-align: center;
 }
 
@@ -416,11 +258,49 @@ footer a:hover {
 }
 
 .challenge-box textarea {
+  font-family: 'Special Elite', monospace;
   width: 100%;
   min-height: 80px;
   padding: 0.75rem;
-  font-family: inherit;
-  border: 2px solid #d1c7b7;
+  border: 2px solid var(--border-color);
   border-radius: 4px;
   background-color: #faf8f5;
+  color: var(--text-color);
+}
+
+footer {
+  text-align: center;
+  padding: 2rem;
+  color: #777;
+  font-size: 0.95rem;
+  margin-top: 4rem;
+  border-top: 1px solid var(--border-color);
+}
+
+footer a {
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .search-form {
+    flex-direction: column;
+  }
+  .search-input {
+    width: 100%;
+  }
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .stamp {
+    position: static;
+    transform: none;
+    margin-top: 10px;
+  }
 }
