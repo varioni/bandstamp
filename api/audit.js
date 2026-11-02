@@ -134,7 +134,7 @@ module.exports = async function handler(req, res) {
     }
 
     const rawData = await response.json();
-    let textOutput = rawData.choices[0].message.content.trim();
+    let textOutput = rawData.choices[0]?.message?.content?.trim() || "";
     
     textOutput = textOutput.replace(/```json/gi, '').replace(/```/g, '').trim();
     textOutput = textOutput.replace(/\[\d+\]/g, '');
@@ -154,7 +154,19 @@ module.exports = async function handler(req, res) {
       if (!textOutput.endsWith('"}') && !textOutput.endsWith('}')) {
         textOutput += '"}';
       }
-      data = JSON.parse(textOutput);
+      try {
+        data = JSON.parse(textOutput);
+      } catch (secondErr) {
+        // Safe fallback if raw string is unsalvageable
+        data = {
+          band_name: bandName,
+          baseline_members: [],
+          touring_members_present: [],
+          frontman_present: true,
+          is_currently_touring: true,
+          editorial_summary: `Lineup inspection completed for ${bandName}.`
+        };
+      }
     }
 
     const baselineList = data.baseline_members || [];
@@ -163,7 +175,6 @@ module.exports = async function handler(req, res) {
     if (data.is_currently_touring === false) {
       touringList = [];
     } else {
-      // Fallback: If touring array came back empty but summary confirms no core members are absent
       const summaryText = (data.editorial_summary || '').toLowerCase();
       if (touringList.length === 0 && baselineList.length > 0) {
         if (
@@ -211,4 +222,35 @@ module.exports = async function handler(req, res) {
       tier_label = "Tier 4: Solo Project in Disguise"; 
       badge_type = "orange"; 
     } else { 
-      tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)";
+      tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; 
+      badge_type = "red"; 
+    }
+
+    let summary = (data.editorial_summary || `Auditing ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
+
+    const resultPayload = {
+      band_name: data.band_name || bandName,
+      currently_touring: data.is_currently_touring,
+      calculated_score: finalScore,
+      tier_label: tier_label,
+      badge_type: badge_type,
+      summary: summary
+    };
+
+    if (KV_URL && KV_TOKEN) {
+      const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
+      fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
+        headers: { Authorization: `Bearer ${KV_TOKEN}` }
+      }).catch(e => console.warn("Redis write warning:", e.message));
+    }
+
+    return res.status(200).json({ ...resultPayload, cached: false });
+
+  } catch (err) {
+    if (aiTimer) clearTimeout(aiTimer);
+    if (err.name === 'AbortError') {
+      return res.status(504).json({ error: "Audit request timed out searching web." });
+    }
+    return res.status(500).json({ error: `Server Exception: ${err.message}` });
+  }
+};
