@@ -20,7 +20,7 @@ body {
   color: var(--text-color);
   font-family: 'Special Elite', monospace;
   line-height: 1.6;
-  padding: 2rem 1rem;
+  padding: 3rem 1.25rem;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -33,51 +33,53 @@ body {
   flex: 1;
 }
 
-/* Centered Hero Header */
+/* Hero Header Spacing */
 .hero-brand {
   text-align: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 3.5rem;
+  padding-top: 1rem;
 }
 
 .main-logo {
   width: 160px;
   height: auto;
   display: block;
-  margin: 0 auto 1rem auto;
+  margin: 0 auto 1.5rem auto;
 }
 
 .brand-heading {
-  font-size: 2.5rem;
+  font-size: 2.6rem;
   color: var(--accent-color);
   letter-spacing: 2px;
   text-transform: uppercase;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.75rem;
 }
 
 .tagline {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-style: italic;
   color: #666;
+  margin-bottom: 0.5rem;
 }
 
-/* Search Box & Inputs */
+/* Search Box & Mobile Stacking */
 .search-box {
   background-color: var(--card-bg);
   border: 2px solid var(--border-color);
   border-radius: 6px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 4px 12px var(--shadow-color);
+  padding: 2rem 1.75rem;
+  margin-bottom: 3rem;
+  box-shadow: 0 4px 14px var(--shadow-color);
 }
 
 #search-form {
   display: flex;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 #band-input {
   flex: 1;
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1.2rem;
   font-family: 'Special Elite', monospace;
   font-size: 1rem;
   border: 2px solid var(--border-color);
@@ -91,12 +93,12 @@ body {
   border-color: var(--accent-color);
 }
 
-/* Direct ID Target for Search Button - Dark Red Vintage Button */
+/* Search Button */
 #stamp-btn, .btn-stamp {
   background-color: #8b0000 !important;
   color: #ffffff !important;
   border: 2px solid #5a0000 !important;
-  padding: 0.75rem 1.5rem !important;
+  padding: 0.85rem 1.75rem !important;
   font-family: 'Special Elite', monospace !important;
   font-size: 1rem !important;
   font-weight: bold !important;
@@ -106,6 +108,7 @@ body {
   box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
   appearance: none !important;
   -webkit-appearance: none !important;
+  white-space: nowrap;
 }
 
 #stamp-btn:hover, .btn-stamp:hover {
@@ -119,18 +122,18 @@ body {
 /* Loading Spinner */
 .loading-spinner {
   text-align: center;
-  margin: 2rem 0;
+  margin: 3rem 0;
   font-size: 1.1rem;
   color: #555;
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: 4px solid var(--border-color);
   border-top: 4px solid var(--accent-color);
   border-radius: 50%;
-  margin: 0 auto 1rem auto;
+  margin: 0 auto 1.25rem auto;
   animation: spin 1s linear infinite;
 }
 
@@ -139,35 +142,36 @@ body {
   100% { transform: rotate(360deg); }
 }
 
-/* Result Card Header */
+/* Result Card */
 .result-card {
   background-color: var(--card-bg);
   border: 2px solid var(--border-color);
   border-radius: 6px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 4px 12px var(--shadow-color);
+  padding: 2rem 1.75rem;
+  margin-bottom: 3rem;
+  box-shadow: 0 4px 14px var(--shadow-color);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
 }
 
 .card-header h2 {
-  font-size: 1.6rem;
+  font-size: 1.75rem;
 }
 
-/* Tier Badge Text Colors in Top Right Header */
 .tier-badge-text {
   font-size: 0.85rem;
   font-weight: bold;
   font-style: italic;
-  padding: 0.3rem 0.6rem;
+  padding: 0.35rem 0.75rem;
   border-radius: 4px;
   border: 1px dashed currentColor;
+  white-space: nowrap;
 }
 
 .tier-badge-text.gold { color: #b8860b !important; background-color: #fffdf0; border-color: #b8860b; }
@@ -181,10 +185,10 @@ body {
 .image-wrapper {
   position: relative;
   width: 100%;
-  max-height: 400px;
+  max-height: 420px;
   overflow: hidden;
   border-radius: 6px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -197,7 +201,7 @@ body {
   display: block;
 }
 
-/* High-Contrast Circular Stamp */
+/* Circular Stamp Seal */
 .stamp {
   position: absolute;
   top: 50%;
@@ -276,16 +280,16 @@ body {
   border-color: #ffffff;
 }
 
-/* Editorial Summary & Distinct Paragraph Gaps */
+/* Editorial Summary Output & Spacing */
 .audit-summary {
-  font-size: 0.95rem;
+  font-size: 1rem;
   color: #333;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .audit-summary p {
-  margin-bottom: 1.4rem !important;
-  line-height: 1.6;
+  margin-bottom: 1.6rem !important;
+  line-height: 1.7;
 }
 
 .audit-summary p:last-child {
@@ -297,14 +301,20 @@ body {
   color: #000 !important;
 }
 
-/* Direct ID Target for Challenge Toggle Button */
+/* Challenge Section */
+.challenge-section {
+  text-align: center;
+  border-top: 1px dashed var(--border-color);
+  padding-top: 1.75rem;
+}
+
 #challenge-toggle-btn, .btn-challenge-toggle {
   background-color: #8b0000 !important;
   color: #ffffff !important;
   border: 2px solid #5a0000 !important;
-  padding: 0.6rem 1.4rem !important;
+  padding: 0.75rem 1.6rem !important;
   font-family: 'Special Elite', monospace !important;
-  font-size: 0.9rem !important;
+  font-size: 0.95rem !important;
   font-weight: bold !important;
   border-radius: 4px !important;
   cursor: pointer !important;
@@ -318,25 +328,19 @@ body {
   background-color: #6b0000 !important;
 }
 
-.challenge-section {
-  text-align: center;
-  border-top: 1px dashed var(--border-color);
-  padding-top: 1.2rem;
-}
-
 .challenge-box {
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 #challenge-input {
   width: 100%;
-  height: 80px;
-  padding: 0.75rem;
+  height: 90px;
+  padding: 0.85rem;
   font-family: 'Special Elite', monospace;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   border: 2px solid var(--border-color);
   border-radius: 4px;
   resize: vertical;
@@ -346,9 +350,9 @@ body {
   background-color: #8b0000 !important;
   color: #ffffff !important;
   border: 2px solid #5a0000 !important;
-  padding: 0.6rem 1.2rem !important;
+  padding: 0.75rem 1.4rem !important;
   font-family: 'Special Elite', monospace !important;
-  font-size: 0.9rem !important;
+  font-size: 0.95rem !important;
   font-weight: bold !important;
   border-radius: 4px !important;
   cursor: pointer !important;
@@ -360,41 +364,41 @@ body {
   background-color: var(--card-bg);
   border: 2px solid var(--border-color);
   border-radius: 6px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 12px var(--shadow-color);
+  padding: 2rem 1.75rem;
+  box-shadow: 0 4px 14px var(--shadow-color);
 }
 
 .tier-legend h2 {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   text-align: center;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1.75rem;
   color: var(--accent-color);
 }
 
 .legend-list {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 1.2rem;
 }
 
 .legend-card {
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  padding: 0.75rem 1rem;
+  padding: 1rem 1.2rem;
   background-color: #fff;
 }
 
 .legend-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.3rem;
+  gap: 0.85rem;
+  margin-bottom: 0.5rem;
 }
 
 .legend-badge {
   font-weight: bold;
   font-size: 0.85rem;
-  padding: 0.15rem 0.5rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 3px;
   border: 1px solid currentColor;
 }
@@ -408,23 +412,75 @@ body {
 
 .legend-title {
   font-weight: bold;
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .legend-desc {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: #555;
+  line-height: 1.5;
 }
 
 .calc-method-link {
   text-align: center;
-  margin-top: 1.2rem;
+  margin-top: 1.75rem;
 }
 
 .calc-method-link a {
   color: var(--accent-color);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   text-decoration: underline;
+}
+
+/* Mobile Responsiveness & Extra Breathing Room */
+@media (max-width: 580px) {
+  body {
+    padding: 2rem 1rem;
+  }
+
+  .hero-brand {
+    margin-bottom: 2.5rem;
+  }
+
+  .main-logo {
+    width: 140px;
+    margin-bottom: 1.25rem;
+  }
+
+  .brand-heading {
+    font-size: 2.1rem;
+  }
+
+  #search-form {
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  #band-input {
+    width: 100%;
+  }
+
+  #stamp-btn, .btn-stamp {
+    width: 100%;
+    text-align: center;
+  }
+
+  .search-box, .result-card, .tier-legend {
+    padding: 1.5rem 1.2rem;
+    margin-bottom: 2.25rem;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .stamp {
+    width: 160px;
+    height: 160px;
+    font-size: 0.85rem;
+  }
 }
 
 /* Utilities & Footer */
@@ -434,8 +490,8 @@ body {
 
 footer {
   text-align: center;
-  margin-top: 3rem;
-  padding-top: 1.5rem;
+  margin-top: 4rem;
+  padding-top: 2rem;
   border-top: 1px solid var(--border-color);
   font-size: 0.85rem;
   color: #666;
