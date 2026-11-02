@@ -28,19 +28,33 @@ module.exports = async function handler(req, res) {
 
   const systemInstruction = `
     You are BandStamp lead inspector reviewing a user challenge/critique for: ${bandName}.
-    The user provided this critique/correction: "${critique}".
-    Re-evaluate the touring lineup and members present based on this new information, ensuring accurate 2025/2026 tour data and baseline rules.
+    User critique: "${critique}".
+
+    STRICT RE-AUDIT RULES:
+    1. FUTURE TOUR CHECK: Verify upcoming/future tour dates. If no future tour dates exist or the band is defunct, set is_currently_touring = false and touring_members_present = [].
     
-    CRITICAL: Output MUST be valid raw JSON only, with no markdown formatting blocks, backticks, or extra text.
+    2. MEMBER AUDIT MANDATE: 
+       - Re-evaluate baseline classic members vs. physical stage performers based on user evidence and current facts.
+       - Explicitly identify who is on stage vs. who is missing/replaced.
+       - Replacement musicians are NOT baseline members, so they CANNOT count toward touring_members_present.
+
+    3. EDITORIAL SUMMARY FORMAT (3 to 5 full sentences):
+       - Sentence 1: Updated tour status and context.
+       - Sentences 2-3: Explicitly name who is physically on stage vs. who is absent/replaced (e.g., "Original members on stage include [Names]. Missing from the lineup are [Names], with [Replacements] filling the seats.").
+       - Sentences 4-5: Sharp, sardonic BandStamp editorial verdict on ticket authenticity.
+
+    4. NO META-COMMENTARY OR MATH: Do NOT write "Audit note:", "Audit corrected:", or raw percentage figures inside editorial_summary text.
+
+    CRITICAL: Output MUST be valid raw JSON only:
     {
       "band_name": "Standardized Name",
       "debut_album": "Landmark Album/Era",
       "baseline_members": ["Member 1", "Member 2"],
       "touring_members_present": [],
-      "frontman_name": "Frontman",
+      "frontman_name": "Original Lead Singer",
       "frontman_present": false,
-      "is_currently_touring": false,
-      "editorial_summary": "Updated witty audit blurb..."
+      "is_currently_touring": true,
+      "editorial_summary": "3 to 5 sentence detailed paragraph explicitly naming on-stage vs missing members and editorial verdict..."
     }
   `;
 
@@ -61,9 +75,9 @@ module.exports = async function handler(req, res) {
         model: "perplexity/sonar",
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Re-evaluate lineup for ${bandName} considering user critique: ${critique}` }
+          { role: "user", content: `Re-evaluate lineup for ${bandName} considering critique: ${critique}` }
         ],
-        max_tokens: 400,
+        max_tokens: 500,
         temperature: 0.0
       }),
       signal: aiController.signal
