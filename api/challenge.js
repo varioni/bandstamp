@@ -27,15 +27,19 @@ module.exports = async function handler(req, res) {
   }
 
   const systemInstruction = `
-    You are BandStamp lead inspector reviewing a user challenge for: ${bandName}.
+    You are BandStamp lead inspector evaluating a user challenge for: ${bandName}.
     User critique: "${critique}".
 
     STRICT RE-AUDIT RULES:
-    1. ZERO-FOUNDER / GHOST SHIP MANDATE:
-       - Check if zero original founding/classic breakthrough members are alive and physically performing on stage.
-       - If zero classic members remain (e.g., Lynyrd Skynyrd after Gary Rossington's death), set zero_classic_members_on_stage = true and touring_members_present = [].
+    1. FACT-CHECK MANDATE:
+       - Perform a web search to verify if the user's critique provides valid new facts.
+       - Ensure touring_members_present ONLY contains classic baseline members. Replacement members DO NOT count.
 
-    2. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
+    2. ABSOLUTE FORBIDDEN META-COMMENTARY:
+       - NEVER mention being challenged or re-evaluating.
+       - Write as an authoritative Pitchfork-style rock journalist.
+
+    3. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
        IF IS_CURRENTLY_TOURING = FALSE:
        - Write 2 short paragraphs confirming no active tour dates.
 
@@ -43,21 +47,17 @@ module.exports = async function handler(req, res) {
        - Paragraph 1: 1-2 short sentences max confirming active tour status.
        - Paragraph 2 (LINEUP BREAKDOWN):
          "**On stage:** [Names and annotated roles]\\n\\n**Absent/Missing:** [Classic baseline members not present]."
-       - Paragraph 3: 2 sentences of direct, energetic Pitchfork-style verdict.
-
-    3. STRICT FORBIDDEN ITEMS:
-       - NEVER mention being challenged or re-evaluating.
-       - NEVER output raw literal line breaks inside JSON strings. Use \\n\\n instead.
+       - Paragraph 3: 2 sentences of direct Pitchfork-style verdict.
 
     CRITICAL: Output MUST be valid single-line raw JSON only without markdown formatting:
     {
       "band_name": "Standardized Name",
       "debut_album": "Landmark Album/Era",
-      "baseline_members": ["Member 1", "Member 2"],
-      "touring_members_present": [],
-      "zero_classic_members_on_stage": true,
-      "frontman_name": "Original Lead Singer",
-      "frontman_present": false,
+      "baseline_members": ["Dexter Holland", "Noodles", "Greg K."],
+      "touring_members_present": ["Dexter Holland"],
+      "zero_classic_members_on_stage": false,
+      "frontman_name": "Dexter Holland",
+      "frontman_present": true,
       "is_currently_touring": true,
       "editorial_summary": "Short paragraph 1\\n\\n**On stage:** ...\\n\\n**Absent/Missing:** ...\\n\\nShort paragraph 3..."
     }
@@ -68,9 +68,7 @@ module.exports = async function handler(req, res) {
     const aiController = new AbortController();
     aiTimer = setTimeout(() => aiController.abort(), 20000);
 
-    const openRouterEndpoint = "https://openrouter.ai/api/v1/chat/completions";
-
-    const response = await fetch(openRouterEndpoint, {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
@@ -131,8 +129,26 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const baselineList = data.baseline_members || [];
+    let baselineList = data.baseline_members || [];
     let touringList = data.touring_members_present || [];
+    let summaryText = data.editorial_summary || '';
+
+    // HARD GUARDRAIL: Cross-verify Absent/Missing text against touring payload
+    const absentMatch = summaryText.match(/Absent\/Missing:\s*([^.\n]+)/i);
+    if (absentMatch) {
+      const absentSection = absentMatch[1].trim();
+      if (!absentSection.toLowerCase().includes('none')) {
+        touringList = touringList.filter(m => {
+          const mName = m.toLowerCase();
+          return !absentSection.toLowerCase().includes(mName);
+        });
+
+        if (touringList.length === baselineList.length && baselineList.length > 0) {
+          baselineList.push("Missing Core Member");
+        }
+      }
+    }
+
     if (data.is_currently_touring === false || data.zero_classic_members_on_stage === true) {
       touringList = [];
     }
@@ -176,7 +192,7 @@ module.exports = async function handler(req, res) {
       badge_type = "red"; 
     }
 
-    let summary = (data.editorial_summary || `Updated audit for ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
+    let summary = summaryText.replace(/\[\d+\]/g, '');
 
     const resultPayload = {
       band_name: data.band_name || bandName,
