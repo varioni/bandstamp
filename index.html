@@ -7,35 +7,58 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <a href="index.html" class="brand">
-      <img src="logo.png" alt="BandStamp Logo" class="logo" style="width: 40px;" />
-      <span class="brand-title">BandStamp</span>
-    </a>
-    <nav>
-      <a href="index.html" class="active">Audit</a>
-      <a href="about.html">About</a>
-    </nav>
-  </header>
-
   <main class="container">
-    <section class="hero">
-      <h1>BandStamp Verification</h1>
-      <p>Evaluate the original member ratio for touring bands before buying tickets.</p>
+    <!-- Centered Brand Header -->
+    <header class="hero-brand">
+      <img src="logo.png" alt="BandStamp Logo" class="main-logo" />
+      <h1 class="brand-heading">BANDSTAMP</h1>
+      <p class="tagline">Evaluate the original member ratio for touring bands before buying tickets.</p>
+    </header>
 
-      <form id="search-form" class="search-form">
-        <input 
-          type="text" 
-          id="band-input" 
-          class="search-input" 
-          placeholder="Enter band or artist name..." 
-          required 
-          autocomplete="off"
-        />
-        <button type="button" id="stamp-btn" class="btn-submit">Inspect Lineup</button>
-      </form>
+    <!-- Search Form -->
+    <form id="search-form" class="search-form">
+      <input 
+        type="text" 
+        id="band-input" 
+        class="search-input" 
+        placeholder="Enter band or artist name..." 
+        required 
+        autocomplete="off"
+      />
+      <button type="button" id="stamp-btn" class="btn-submit">Inspect Lineup</button>
+    </form>
+
+    <!-- Scoring Criteria Legend by Color -->
+    <section class="tier-legend">
+      <h3>Scoring Tiers</h3>
+      <div class="legend-grid">
+        <div class="legend-item gold">
+          <span class="legend-badge">100%</span>
+          <span class="legend-text">Tier 1: Unbroken Circle</span>
+        </div>
+        <div class="legend-item green">
+          <span class="legend-badge">75% - 99%</span>
+          <span class="legend-text">Tier 2: Near-Mint Vintage</span>
+        </div>
+        <div class="legend-item yellow">
+          <span class="legend-badge">50% - 74%</span>
+          <span class="legend-text">Tier 3: Co-Founder Equity</span>
+        </div>
+        <div class="legend-item orange">
+          <span class="legend-badge">25% - 49%</span>
+          <span class="legend-text">Tier 4: Solo Project in Disguise</span>
+        </div>
+        <div class="legend-item red">
+          <span class="legend-badge">0% - 24%</span>
+          <span class="legend-text">Tier 5: The Ghost Ship</span>
+        </div>
+      </div>
+      <div class="calc-method-link">
+        <a href="about.html">View full calculation method & rules &rarr;</a>
+      </div>
     </section>
 
+    <!-- Loading Indicator -->
     <div id="loading" class="spinner-container hidden">
       <div class="spinner"></div>
       <p>Auditing lineup...</p>
