@@ -25,7 +25,6 @@ module.exports = async function handler(req, res) {
 
   const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
 
-  // 1. Fast Redis Cache Read
   if (KV_URL && KV_TOKEN) {
     try {
       const kvController = new AbortController();
@@ -56,23 +55,26 @@ module.exports = async function handler(req, res) {
   const systemInstruction = `
     You are BandStamp lead inspector. Search the web for active 2025/2026 tour dates and touring lineup for: ${bandName}.
 
-    RULES:
-    1. Active Tour Verification: Check if band has active 2025/2026 tour dates under this exact name. If defunct/disbanded/dormant, set is_currently_touring to FALSE and touring_members_present to [].
-    2. Mortality Mandate: Deceased members CANNOT be in touring_members_present!
-    3. Baseline: Debut album core members. Exception for classic defining rosters. Solo auteur projects baseline as 1 founder.
-    4. Hard Cross-Check: Missing/deceased members in narrative MUST be in baseline_members and ABSENT from touring_members_present.
-    5. DO NOT write raw percentage figures or math inside editorial_summary text.
+    STRICT LINEUP EVALUATION RULES:
+    1. BASELINE MEMBERS: List the core members from the band's landmark/classic breakthrough era. (e.g. for Linkin Park: Mike Shinoda, Brad Delson, Dave Farrell, Joe Hahn, Chester Bennington, Rob Bourdon).
+    2. TOURING MEMBERS PRESENT: ONLY list members from baseline_members who are PHYSICAL STAGE PERFORMERS on the 2025/2026 tour.
+       - If a baseline member stepped back from touring duties and is replaced on stage by a hired touring musician (e.g. Brad Delson replaced on stage by Alex Feder), DO NOT put that baseline member in touring_members_present!
+       - Replacement musicians (e.g. Emily Armstrong, Colin Brittain, Alex Feder) are NOT baseline members, so they CANNOT count toward touring_members_present.
+    3. FRONTMAN PRESENT: Set to TRUE ONLY if the ORIGINAL/CLASSIC iconic lead singer from baseline_members (e.g. Chester Bennington) is on stage. Replacement singers (e.g. Emily Armstrong) do NOT count as frontman_present = true.
+    4. MORTALITY MANDATE: Deceased members CANNOT be in touring_members_present.
+    5. NO META-COMMENTARY: Write editorial_summary as a pure, witty audit statement. NEVER write meta phrases like "Audit corrected:", "Audit note:", or "So no, it is not X%".
+    6. DO NOT write raw percentage figures or math inside editorial_summary text.
 
-    CRITICAL: Output MUST be valid raw JSON only, with no markdown formatting blocks, backticks, or extra text.
+    CRITICAL: Output MUST be valid raw JSON only:
     {
       "band_name": "Standardized Name",
       "debut_album": "Landmark Album/Era",
       "baseline_members": ["Member 1", "Member 2"],
       "touring_members_present": [],
-      "frontman_name": "Frontman",
+      "frontman_name": "Original Lead Singer",
       "frontman_present": false,
-      "is_currently_touring": false,
-      "editorial_summary": "Witty audit blurb..."
+      "is_currently_touring": true,
+      "editorial_summary": "Witty, sharp audit summary..."
     }
   `;
 
@@ -93,7 +95,7 @@ module.exports = async function handler(req, res) {
         model: "perplexity/sonar",
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Search current 2025/2026 tour dates and lineup for: ${bandName}` }
+          { role: "user", content: `Search current 2025/2026 tour dates and touring lineup for: ${bandName}` }
         ],
         max_tokens: 400,
         temperature: 0.0
