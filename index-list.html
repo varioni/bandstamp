@@ -6,15 +6,55 @@
   <title>BandStamp - Live Band Lineup Index</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="stylesheet" href="style.css">
+  <style>
+    .tier-group {
+      margin-bottom: 2rem;
+    }
+    .tier-group-header {
+      font-size: 1.1rem;
+      font-weight: bold;
+      padding: 0.5rem 0.8rem;
+      border-radius: 4px;
+      margin-bottom: 0.8rem;
+      border: 1px solid currentColor;
+    }
+    .tier-group-header.gold { color: #b8860b; background-color: #fffdf0; border-color: #b8860b; }
+    .tier-group-header.green { color: #2e7d32; background-color: #f1f8e9; border-color: #2e7d32; }
+    .tier-group-header.yellow { color: #d7ccc8; background-color: #fffde7; border-color: #f57f17; }
+    .tier-group-header.orange { color: #e65100; background-color: #fff3e0; border-color: #e65100; }
+    .tier-group-header.red { color: #b71c1c; background-color: #ffebee; border-color: #b71c1c; }
+
+    .index-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.85rem 1.1rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background-color: #fff;
+      margin-bottom: 0.6rem;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .index-card:hover {
+      transform: translateY(-2deg);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    }
+    .index-band-name {
+      font-weight: bold;
+      font-size: 1.05rem;
+      color: var(--text-color);
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <header class="hero-brand">
       <a href="index.html">
-        <img src="logo.png" alt="BandStamp Logo" class="main-logo" style="width: 160px;">
+        <img src="logo.png" alt="BandStamp Logo" class="main-logo">
       </a>
       <h1 class="brand-heading">BANDSTAMP INDEX</h1>
-      <p class="tagline">Stack-Ranked Purity Ratings for Active Touring Bands</p>
+      <p class="tagline">Color-Coded Purity Index for Active Touring Bands</p>
     </header>
 
     <main class="result-card">
@@ -29,7 +69,7 @@
       </div>
 
       <div id="index-container" class="hidden">
-        <div class="legend-list" id="index-list"></div>
+        <div id="index-groups"></div>
       </div>
     </main>
 
@@ -42,7 +82,15 @@
     document.addEventListener('DOMContentLoaded', async () => {
       const loading = document.getElementById('index-loading');
       const container = document.getElementById('index-container');
-      const listEl = document.getElementById('index-list');
+      const groupsEl = document.getElementById('index-groups');
+
+      const tierDefinitions = [
+        { key: 'gold', title: 'Tier 1: Unbroken Circle (100%)' },
+        { key: 'green', title: 'Tier 2: Near-Mint Vintage (75% - 99%)' },
+        { key: 'yellow', title: 'Tier 3: Co-Founder Equity (50% - 74%)' },
+        { key: 'orange', title: 'Tier 4: Solo Project in Disguise (25% - 49%)' },
+        { key: 'red', title: 'Tier 5: The Ghost Ship (0% - 24%)' }
+      ];
 
       try {
         const res = await fetch('/api/index-list');
@@ -50,20 +98,31 @@
         const bands = data.bands || [];
 
         if (bands.length === 0) {
-          listEl.innerHTML = `<p style="text-align: center; color: #666;">No active touring bands audited yet. Search a band to populate the index!</p>`;
+          groupsEl.innerHTML = `<p style="text-align: center; color: #666;">No active touring bands audited yet. Search a band on the front page to populate the index!</p>`;
         } else {
-          listEl.innerHTML = bands.map((b, i) => `
-            <div class="legend-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="window.location.href='index.html?band=${encodeURIComponent(b.band_name)}'">
-              <div>
-                <span style="font-weight: bold; font-size: 1.1rem; color: #111; text-decoration: underline;">#${i + 1} ${b.band_name}</span>
-                <div style="font-size: 0.85rem; color: #666; margin-top: 0.2rem;">${b.tier_label}</div>
-              </div>
-              <span class="legend-badge ${b.badge_type}">${b.calculated_score}% PURITY</span>
-            </div>
-          `).join('');
+          let html = '';
+
+          tierDefinitions.forEach(tier => {
+            const groupBands = bands.filter(b => (b.badge_type || 'gold') === tier.key);
+            if (groupBands.length > 0) {
+              html += `
+                <div class="tier-group">
+                  <div class="tier-group-header ${tier.key}">${tier.title}</div>
+                  ${groupBands.map(b => `
+                    <div class="index-card" onclick="window.location.href='index.html?band=${encodeURIComponent(b.band_name)}'">
+                      <span class="index-band-name">${b.band_name}</span>
+                      <span class="legend-badge ${b.badge_type}">${b.calculated_score}% PURITY</span>
+                    </div>
+                  `).join('')}
+                </div>
+              `;
+            }
+          });
+
+          groupsEl.innerHTML = html;
         }
       } catch (err) {
-        listEl.innerHTML = `<p style="color: red;">Error loading index: ${err.message}</p>`;
+        groupsEl.innerHTML = `<p style="color: red;">Error loading index: ${err.message}</p>`;
       } finally {
         loading.classList.add('hidden');
         container.classList.remove('hidden');
