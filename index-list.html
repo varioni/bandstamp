@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BandStamp - Live Band Lineup Index</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="hero-brand">
+      <a href="index.html">
+        <img src="logo.png" alt="BandStamp Logo" class="main-logo" style="width: 160px;">
+      </a>
+      <h1 class="brand-heading">BANDSTAMP INDEX</h1>
+      <p class="tagline">Stack-Ranked Purity Ratings for Active Touring Bands</p>
+    </header>
+
+    <main class="result-card">
+      <div class="card-header" style="margin-bottom: 2rem;">
+        <h2>Active Touring Roster</h2>
+        <a href="index.html" style="color: var(--accent-color); font-size: 0.9rem;">← Back to Audit Tool</a>
+      </div>
+
+      <div id="index-loading" class="loading-spinner">
+        <div class="spinner"></div>
+        <p>Loading active band index...</p>
+      </div>
+
+      <div id="index-container" class="hidden">
+        <div class="legend-list" id="index-list"></div>
+      </div>
+    </main>
+
+    <footer>
+      Lineup Purity Audit for Live Music • <a href="about.html">About & Methodology</a> • Made with ❤️ by <a href="https://github.com/varioni" target="_blank">varioni</a>
+    </footer>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const loading = document.getElementById('index-loading');
+      const container = document.getElementById('index-container');
+      const listEl = document.getElementById('index-list');
+
+      try {
+        const res = await fetch('/api/index-list');
+        const data = await res.json();
+        const bands = data.bands || [];
+
+        if (bands.length === 0) {
+          listEl.innerHTML = `<p style="text-align: center; color: #666;">No active touring bands audited yet. Search a band to populate the index!</p>`;
+        } else {
+          listEl.innerHTML = bands.map((b, i) => `
+            <div class="legend-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="window.location.href='index.html?band=${encodeURIComponent(b.band_name)}'">
+              <div>
+                <span style="font-weight: bold; font-size: 1.1rem; color: #111; text-decoration: underline;">#${i + 1} ${b.band_name}</span>
+                <div style="font-size: 0.85rem; color: #666; margin-top: 0.2rem;">${b.tier_label}</div>
+              </div>
+              <span class="legend-badge ${b.badge_type}">${b.calculated_score}% PURITY</span>
+            </div>
+          `).join('');
+        }
+      } catch (err) {
+        listEl.innerHTML = `<p style="color: red;">Error loading index: ${err.message}</p>`;
+      } finally {
+        loading.classList.add('hidden');
+        container.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>
