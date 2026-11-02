@@ -33,7 +33,7 @@ module.exports = async function handler(req, res) {
     STRICT RE-AUDIT RULES:
     1. FUTURE TOUR CHECK: Search for upcoming/future announced shows. If no future tour dates exist or the band is defunct/dormant, set is_currently_touring = false and touring_members_present = [].
 
-    2. EDITORIAL SUMMARY FORMAT (MANDATORY 3 PARAGRAPHS SEPARATED BY DOUBLE NEWLINES \\n\\n):
+    2. EDITORIAL SUMMARY FORMAT (MANDATORY 3 PARAGRAPHS SEPARATED BY ESCAPED NEWLINES \\n\\n):
        Paragraph 1: State updated tour status and schedule context concisely.
        
        Paragraph 2 (ROSTER BREAKDOWN WITH ROLES):
@@ -44,12 +44,13 @@ module.exports = async function handler(req, res) {
        2 sentences of sharp, energetic Pitchfork-style critique on lineup authenticity. Direct, punchy, and grounded in raw live performance reality.
 
     3. STRICT FORBIDDEN ITEMS:
+       - NEVER use raw literal line breaks inside JSON strings. Use \\n\\n instead.
        - NEVER use florid poetic clichés ("corporate chassis humming", "bruised chemistry", "real alchemy", "museum-piece cosplay", "fold its own tent").
        - NEVER list names without explicitly stating their role/status.
        - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
        - NEVER write "database ghosts", "system audit", "AI", or raw score percentage math.
 
-    CRITICAL: Output MUST be valid raw JSON only:
+    CRITICAL: Output MUST be valid single-line raw JSON only:
     {
       "band_name": "Standardized Name",
       "debut_album": "Landmark Album/Era",
@@ -99,6 +100,9 @@ module.exports = async function handler(req, res) {
 
     const jsonMatch = textOutput.match(/\{[\s\S]*\}/);
     if (jsonMatch) textOutput = jsonMatch[0];
+
+    // Sanitize unescaped newlines within JSON string values before parsing
+    textOutput = textOutput.replace(/(\r\n|\n|\r)/g, "\\n");
 
     const data = JSON.parse(textOutput);
 
