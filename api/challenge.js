@@ -35,12 +35,12 @@ module.exports = async function handler(req, res) {
 
     2. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
        IF IS_CURRENTLY_TOURING = FALSE:
-       - Do NOT list "On stage:" or "Absent/Missing:" rosters.
+       - Do NOT list "**On stage:**" or "**Absent/Missing:**" rosters.
        - Write 2 short paragraphs explaining that the band is not touring, where surviving founders are now, and a brief Pitchfork closing statement.
 
        IF IS_CURRENTLY_TOURING = TRUE:
        - Paragraph 1: 1-2 short sentences max confirming active tour status. STRICTLY FORBIDDEN: Do NOT list cities, venue names, or date itineraries.
-       - Paragraph 2 (ROSTER BREAKDOWN WITH ANNOTATED ROLES):
+       - Paragraph 2 (ROSTER BREAKDOWN):
          "**On stage:** [Full Name (Instrument - Role)] joined by [Full Name (Instrument - Replacement)].\\n\\n**Absent/Missing:** [Full Name (Instrument - Role) OR 'None']."
        - Paragraph 3: 2 sentences of direct, energetic Pitchfork-style verdict.
 
@@ -68,9 +68,7 @@ module.exports = async function handler(req, res) {
     const aiController = new AbortController();
     aiTimer = setTimeout(() => aiController.abort(), 20000);
 
-    const openRouterEndpoint = "https://openrouter.ai/api/v1/chat/completions";
-
-    const response = await fetch(openRouterEndpoint, {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
@@ -174,12 +172,6 @@ module.exports = async function handler(req, res) {
     }
 
     let summary = (data.editorial_summary || `Updated audit for ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
-
-    summary = summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-    summary = summary
-      .replace(/(?:<strong>)?On stage:(?:<\/strong>)?/gi, '<strong>On stage:</strong>')
-      .replace(/(?:<strong>)?Absent\/Missing:(?:<\/strong>)?/gi, '<strong>Absent/Missing:</strong>');
 
     const resultPayload = {
       band_name: data.band_name || bandName,
