@@ -81,7 +81,7 @@ module.exports = async function handler(req, res) {
        - NEVER write florid poetic clichés ("corporate chassis humming", "real alchemy", "museum-piece cosplay", "database ghosts").
        - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
 
-    CRITICAL: Output MUST be valid single-line raw JSON only:
+    CRITICAL: Output MUST be valid single-line raw JSON only without markdown formatting:
     {
       "band_name": "Standardized Name",
       "debut_album": "Landmark Album/Era",
@@ -99,12 +99,12 @@ module.exports = async function handler(req, res) {
     const aiController = new AbortController();
     aiTimer = setTimeout(() => aiController.abort(), 20000);
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await fetch("[https://openrouter.ai/api/v1/chat/completions](https://openrouter.ai/api/v1/chat/completions)", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://bandstamp.com",
+        "HTTP-Referer": "[https://bandstamp.com](https://bandstamp.com)",
         "X-Title": "BandStamp"
       },
       body: JSON.stringify({
@@ -127,10 +127,16 @@ module.exports = async function handler(req, res) {
 
     const rawData = await response.json();
     let textOutput = rawData.choices[0].message.content.trim();
+    
+    // Clean up markdown block wraps (e.g. ```json ... ```)
+    textOutput = textOutput.replace(/```json/gi, '').replace(/```/g, '').trim();
     textOutput = textOutput.replace(/\[\d+\]/g, '');
 
-    const jsonMatch = textOutput.match(/\{[\s\S]*\}/);
-    if (jsonMatch) textOutput = jsonMatch[0];
+    const firstBrace = textOutput.indexOf('{');
+    const lastBrace = textOutput.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      textOutput = textOutput.substring(firstBrace, lastBrace + 1);
+    }
 
     textOutput = textOutput.replace(/(\r\n|\n|\r)/g, "\\n");
 
@@ -138,7 +144,6 @@ module.exports = async function handler(req, res) {
     try {
       data = JSON.parse(textOutput);
     } catch (parseErr) {
-      // Auto-repair truncated JSON strings if cut off mid-output
       if (!textOutput.endsWith('"}') && !textOutput.endsWith('}')) {
         textOutput += '"}' ;
       }
