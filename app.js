@@ -28,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
     black: '#ffffff'
   };
 
-  // Helper function to shuffle array (Fisher-Yates)
   function shuffleArray(array) {
     const arr = [...array];
     for (let i = arr.length - 1; i > 0; i--) {
@@ -49,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const bands = data.bands || [];
 
       if (bands.length > 0) {
-        // Shuffle the band list for the ticker banner
         const randomizedBands = shuffleArray(bands);
 
         const itemsHtml = randomizedBands.map(b => {
@@ -63,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
           `;
         }).join('');
 
-        // Duplicate string to create seamless infinite scrolling effect
         track.innerHTML = itemsHtml + itemsHtml;
       } else {
         track.innerHTML = `<a href="index-list.html" class="ticker-item">★ BANDSTAMP LIVE INDEX: Audit a band to rank them on the leaderboard!</a>`;
@@ -74,6 +71,30 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   loadTicker();
+
+  // Dynamic Wikimedia Commons Search API fetcher
+  async function fetchBandPhoto(bandName) {
+    const fallbackUrl = 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=800&q=80';
+    try {
+      const query = encodeURIComponent(`${bandName} band concert live`);
+      const apiUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&percent=90&gsrsearch=${query}&gsrnamespace=6&gsrlimit=1&prop=imageinfo&iiprop=url&format=json&origin=*`;
+
+      const response = await fetch(apiUrl);
+      if (!response.ok) return fallbackUrl;
+
+      const data = await response.json();
+      if (!data.query || !data.query.pages) return fallbackUrl;
+
+      const pages = data.query.pages;
+      const firstPageKey = Object.keys(pages)[0];
+      const imageInfo = pages[firstPageKey]?.imageinfo?.[0];
+
+      return imageInfo?.url || fallbackUrl;
+    } catch (e) {
+      console.warn('Wikimedia image search error:', e.message);
+      return fallbackUrl;
+    }
+  }
 
   stampBtn.addEventListener('click', (e) => {
     e.preventDefault();
@@ -112,8 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const data = await response.json();
-      renderAuditResult(data);
-      loadTicker(); // Refresh ticker after challenge re-audit
+      await renderAuditResult(data);
+      loadTicker();
     } catch (err) {
       alert(`Challenge Error: ${err.message}`);
     } finally {
@@ -144,8 +165,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const data = await response.json();
-      renderAuditResult(data);
-      loadTicker(); // Refresh ticker after new audit
+      await renderAuditResult(data);
+      loadTicker();
     } catch (err) {
       alert(`Audit Error: ${err.message}`);
     } finally {
@@ -153,16 +174,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function renderAuditResult(data) {
+  async function renderAuditResult(data) {
     bandHeading.textContent = data.band_name || currentBandName;
     tierBadge.textContent = data.tier_label || 'Audit Result';
     tierBadge.className = `tier-badge-text ${data.badge_type || 'gold'}`;
 
-    const encodedName = encodeURIComponent(data.band_name || currentBandName);
-    bandPhoto.src = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodedName}.jpg`;
-    bandPhoto.onerror = () => {
-      bandPhoto.src = `https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=800&q=80`;
-    };
+    // Dynamically search Wikimedia for a real photo matching the band
+    const photoUrl = await fetchBandPhoto(data.band_name || currentBandName);
+    bandPhoto.src = photoUrl;
 
     if (!data.currently_touring) {
       stampOverlay.textContent = 'NOT TOURING';
@@ -172,16 +191,13 @@ document.addEventListener('DOMContentLoaded', () => {
       stampOverlay.className = `stamp ${data.badge_type || 'gold'}`;
     }
 
-    // Clean up summary string & format bold tags
     let rawText = data.summary || '';
     rawText = rawText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     rawText = rawText.replace(/(?:<strong>)?On stage:(?:<\/strong>)?/gi, '<strong>On stage:</strong>');
     rawText = rawText.replace(/(?:<strong>)?Absent\/Missing:(?:<\/strong>)?/gi, '<strong>Absent/Missing:</strong>');
 
-    // Ensure Absent/Missing starts on a new line break if attached to On stage line
     rawText = rawText.replace(/([^\n])\s*<strong>Absent\/Missing:<\/strong>/gi, '$1\n\n<strong>Absent/Missing:</strong>');
 
-    // Normalize all escaped or literal line breaks (\r\n, \n, \\n) into SPLIT_MARKER
     let normalized = rawText
       .replace(/\\n/g, '\n')
       .replace(/\r\n/g, '\n')
@@ -192,7 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
       .map(p => p.trim())
       .filter(p => p.length > 0);
 
-    // Build HTML paragraphs with explicit inline bottom margin spacing
     auditSummary.innerHTML = paragraphs
       .map(p => `<p style="margin-bottom: 1.2rem; line-height: 1.6;">${p}</p>`)
       .join('');
@@ -200,7 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
     resultCard.classList.remove('hidden');
   }
 
-  // Auto-run search if ?band=Name URL query parameter exists
   const urlParams = new URLSearchParams(window.location.search);
   const bandParam = urlParams.get('band');
   if (bandParam) {
