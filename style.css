@@ -60,7 +60,7 @@ body {
   color: #666;
 }
 
-/* Search Box */
+/* Search Box & Inputs */
 .search-box {
   background-color: var(--card-bg);
   border: 2px solid var(--border-color);
@@ -91,27 +91,29 @@ body {
   border-color: var(--accent-color);
 }
 
-/* Restored Crimson Red Primary Button Styling */
-.btn-stamp {
-  background-color: var(--accent-color) !important;
+/* Direct ID Target for Search Button - Dark Red Vintage Button */
+#stamp-btn, .btn-stamp {
+  background-color: #8b0000 !important;
   color: #ffffff !important;
   border: 2px solid #5a0000 !important;
-  padding: 0.75rem 1.5rem;
-  font-family: 'Special Elite', monospace;
-  font-size: 1rem;
-  font-weight: bold;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  padding: 0.75rem 1.5rem !important;
+  font-family: 'Special Elite', monospace !important;
+  font-size: 1rem !important;
+  font-weight: bold !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease, transform 0.1s ease !important;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
 }
 
-.btn-stamp:hover {
+#stamp-btn:hover, .btn-stamp:hover {
   background-color: #6b0000 !important;
 }
 
-.btn-stamp:active {
-  transform: scale(0.98);
+#stamp-btn:active, .btn-stamp:active {
+  transform: scale(0.97) !important;
 }
 
 /* Loading Spinner */
@@ -137,7 +139,7 @@ body {
   100% { transform: rotate(360deg); }
 }
 
-/* Result Card */
+/* Result Card Header */
 .result-card {
   background-color: var(--card-bg);
   border: 2px solid var(--border-color);
@@ -158,17 +160,22 @@ body {
   font-size: 1.6rem;
 }
 
-/* Restored Tier Badge Styling with Background Fill */
+/* Tier Badge Text Colors in Top Right Header */
 .tier-badge-text {
   font-size: 0.85rem;
   font-weight: bold;
   font-style: italic;
-  color: var(--accent-color) !important;
-  background-color: #f3e9dc;
-  border: 1px dashed var(--accent-color);
   padding: 0.3rem 0.6rem;
   border-radius: 4px;
+  border: 1px dashed currentColor;
 }
+
+.tier-badge-text.gold { color: #b8860b !important; background-color: #fffdf0; border-color: #b8860b; }
+.tier-badge-text.green { color: #2e7d32 !important; background-color: #f1f8e9; border-color: #2e7d32; }
+.tier-badge-text.yellow { color: #d7ccc8 !important; background-color: #fffde7; border-color: #f57f17; }
+.tier-badge-text.orange { color: #e65100 !important; background-color: #fff3e0; border-color: #e65100; }
+.tier-badge-text.red { color: #b71c1c !important; background-color: #ffebee; border-color: #b71c1c; }
+.tier-badge-text.black { color: #111111 !important; background-color: #f5f5f5; border-color: #111111; }
 
 /* Photo Wrapper */
 .image-wrapper {
@@ -190,7 +197,7 @@ body {
   display: block;
 }
 
-/* Large, Ultra-Visible Circular Rubber Stamp Seal */
+/* High-Contrast Circular Stamp */
 .stamp {
   position: absolute;
   top: 50%;
@@ -212,7 +219,6 @@ body {
   padding: 12px;
   box-sizing: border-box;
 
-  /* Thick concentric double-ring borders */
   border: 6px double currentColor;
   box-shadow: 0 0 0 3px currentColor inset, 0 4px 20px rgba(0, 0, 0, 0.6);
 
@@ -233,44 +239,44 @@ body {
   }
 }
 
-/* Color Tiers with Opaque Backdrops for Maximum Readability */
+/* Color Tiers for Central Stamp */
 .stamp.gold {
   color: #ffd700;
-  background: rgba(30, 25, 10, 0.85);
+  background: rgba(30, 25, 10, 0.88);
   border-color: #ffd700;
 }
 
 .stamp.green {
   color: #4caf50;
-  background: rgba(10, 30, 15, 0.85);
+  background: rgba(10, 30, 15, 0.88);
   border-color: #4caf50;
 }
 
 .stamp.yellow {
   color: #ffeb3b;
-  background: rgba(35, 30, 5, 0.85);
+  background: rgba(35, 30, 5, 0.88);
   border-color: #ffeb3b;
 }
 
 .stamp.orange {
   color: #ff9800;
-  background: rgba(35, 20, 5, 0.85);
+  background: rgba(35, 20, 5, 0.88);
   border-color: #ff9800;
 }
 
 .stamp.red {
   color: #ff5252;
-  background: rgba(40, 10, 10, 0.85);
+  background: rgba(40, 10, 10, 0.88);
   border-color: #ff5252;
 }
 
 .stamp.black {
   color: #ffffff;
-  background: rgba(15, 15, 15, 0.90);
+  background: rgba(15, 15, 15, 0.92);
   border-color: #ffffff;
 }
 
-/* Editorial Summary Output & Paragraph Breaks */
+/* Editorial Summary & Distinct Paragraph Gaps */
 .audit-summary {
   font-size: 0.95rem;
   color: #333;
@@ -278,41 +284,44 @@ body {
 }
 
 .audit-summary p {
-  margin-bottom: 1.2rem;
+  margin-bottom: 1.4rem !important;
   line-height: 1.6;
 }
 
 .audit-summary p:last-child {
-  margin-bottom: 0;
+  margin-bottom: 0 !important;
 }
 
 .audit-summary strong {
-  font-weight: bold;
-  color: #000;
+  font-weight: bold !important;
+  color: #000 !important;
 }
 
-/* Challenge Section */
+/* Direct ID Target for Challenge Toggle Button */
+#challenge-toggle-btn, .btn-challenge-toggle {
+  background-color: #8b0000 !important;
+  color: #ffffff !important;
+  border: 2px solid #5a0000 !important;
+  padding: 0.6rem 1.4rem !important;
+  font-family: 'Special Elite', monospace !important;
+  font-size: 0.9rem !important;
+  font-weight: bold !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15) !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+#challenge-toggle-btn:hover, .btn-challenge-toggle:hover {
+  background-color: #6b0000 !important;
+}
+
 .challenge-section {
   text-align: center;
   border-top: 1px dashed var(--border-color);
   padding-top: 1.2rem;
-}
-
-.btn-challenge-toggle {
-  background-color: var(--accent-color) !important;
-  color: #ffffff !important;
-  border: 1px solid #5a0000 !important;
-  padding: 0.5rem 1.2rem;
-  font-family: 'Special Elite', monospace;
-  font-size: 0.9rem;
-  font-weight: bold;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-challenge-toggle:hover {
-  background-color: #6b0000 !important;
 }
 
 .challenge-box {
@@ -328,9 +337,22 @@ body {
   padding: 0.75rem;
   font-family: 'Special Elite', monospace;
   font-size: 0.9rem;
-  border: 1px solid var(--border-color);
+  border: 2px solid var(--border-color);
   border-radius: 4px;
   resize: vertical;
+}
+
+#submit-challenge-btn {
+  background-color: #8b0000 !important;
+  color: #ffffff !important;
+  border: 2px solid #5a0000 !important;
+  padding: 0.6rem 1.2rem !important;
+  font-family: 'Special Elite', monospace !important;
+  font-size: 0.9rem !important;
+  font-weight: bold !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  appearance: none !important;
 }
 
 /* Tier Legend Section */
