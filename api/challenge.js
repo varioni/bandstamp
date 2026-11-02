@@ -31,7 +31,7 @@ module.exports = async function handler(req, res) {
     The user provided this critique/correction: "${critique}".
     Re-evaluate the touring lineup and members present based on this new information, ensuring accurate 2025/2026 tour data and baseline rules.
     
-    Return ONLY JSON:
+    CRITICAL: Output MUST be valid raw JSON only, with no markdown formatting blocks, backticks, or extra text.
     {
       "band_name": "Standardized Name",
       "debut_album": "Landmark Album/Era",
@@ -47,7 +47,7 @@ module.exports = async function handler(req, res) {
   let aiTimer;
   try {
     const aiController = new AbortController();
-    aiTimer = setTimeout(() => aiController.abort(), 8500);
+    aiTimer = setTimeout(() => aiController.abort(), 20000);
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -63,7 +63,6 @@ module.exports = async function handler(req, res) {
           { role: "system", content: systemInstruction },
           { role: "user", content: `Re-evaluate lineup for ${bandName} considering user critique: ${critique}` }
         ],
-        response_format: { type: "json_object" },
         max_tokens: 400,
         temperature: 0.0
       }),
@@ -121,7 +120,6 @@ module.exports = async function handler(req, res) {
       summary: summary
     };
 
-    // Update Cache with Challenge Result
     const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
