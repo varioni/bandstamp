@@ -18,19 +18,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentBandName = '';
 
-  // Trigger search on button click
   stampBtn.addEventListener('click', (e) => {
     e.preventDefault();
     handleSearch();
   });
 
-  // Trigger search on Enter key
   searchForm.addEventListener('submit', (e) => {
     e.preventDefault();
     handleSearch();
   });
 
-  // Toggle challenge input box visibility
   challengeToggleBtn.addEventListener('click', () => {
     challengeBox.classList.toggle('hidden');
     if (!challengeBox.classList.contains('hidden')) {
@@ -38,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Submit challenge re-audit
   submitChallengeBtn.addEventListener('click', async () => {
     const critique = challengeInput.value.trim();
     if (!critique || !currentBandName) return;
@@ -102,14 +98,14 @@ document.addEventListener('DOMContentLoaded', () => {
     bandHeading.textContent = data.band_name || currentBandName;
     tierBadge.textContent = data.tier_label || 'Audit Result';
 
-    // Set band photo URL (Wikipedia/Wikimedia media endpoint fallback)
+    // Set band photo URL with a real live rock concert fallback instead of DJ turntable
     const encodedName = encodeURIComponent(data.band_name || currentBandName);
     bandPhoto.src = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodedName}.jpg`;
     bandPhoto.onerror = () => {
-      bandPhoto.src = `https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80`;
+      // High-energy live rock stage fallback photo
+      bandPhoto.src = `https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=800&q=80`;
     };
 
-    // Render Rubber Stamp Badge
     if (!data.currently_touring) {
       stampOverlay.textContent = 'NOT TOURING';
       stampOverlay.className = 'stamp black';
@@ -118,13 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
       stampOverlay.className = `stamp ${data.badge_type || 'red'}`;
     }
 
-    // Convert markdown **bold** tags to <strong> HTML elements
-    let formattedSummary = (data.summary || '')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-    auditSummary.innerHTML = formattedSummary;
-
-    // Reveal result card
+    auditSummary.innerHTML = data.summary || '';
     resultCard.classList.remove('hidden');
   }
 });
