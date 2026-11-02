@@ -64,15 +64,19 @@ module.exports = async function handler(req, res) {
        - Identify who among them is PHYSICALLY PERFORMING on stage for upcoming dates.
        - Replacement musicians are NOT baseline members and CANNOT count toward touring_members_present.
 
-    3. EDITORIAL SUMMARY FORMAT (MANDATORY STRUCTURE WITH ROLES, 3 to 5 full sentences):
-       - Sentence 1: Upcoming tour status and context.
-       - Sentence 2 (MANDATORY ANNOTATED ROLES): MUST explicitly state: "On stage: [Name (Instrument - Founding Member / Classic Era Member)] joined by [Name (Instrument - Touring Replacement)]."
-       - Sentence 3 (MANDATORY ANNOTATED ROLES): MUST explicitly state: "Absent/Missing: [Name (Instrument - Founding Member / Deceased / Opted Out)]."
-       - Sentences 4-5: Sharp, sardonic Pitchfork-style editorial verdict on whether this lineup preserves the real spirit of the music.
+    3. EDITORIAL SUMMARY FORMAT (MANDATORY 3 PARAGRAPHS SEPARATED BY DOUBLE NEWLINES \\n\\n):
+       Paragraph 1: State upcoming tour status and schedule context concisely.
+       
+       Paragraph 2 (ROSTER BREAKDOWN WITH ROLES):
+       "On stage: [Full Name (Instrument - Founding Member / Classic Era Member)] joined by [Full Name (Instrument - Touring Replacement)]. 
+       Absent/Missing: [Full Name (Instrument - Founding Member / Deceased / Opted Out)]."
+       
+       Paragraph 3 (EDITORIAL VERDICT):
+       2 sentences of sharp, energetic Pitchfork-style critique on lineup authenticity. Direct, punchy, and grounded in raw live performance reality.
 
     4. STRICT FORBIDDEN ITEMS:
-       - NEVER list names without explicitly stating their role/status (e.g. founding member, classic era, or touring replacement).
-       - NEVER use generic fluff terms like "engine room", "classic core", "immortal lineup" without stating real names with roles.
+       - NEVER use florid poetic clichés ("corporate chassis humming", "bruised chemistry", "real alchemy", "museum-piece cosplay", "fold its own tent").
+       - NEVER list names without explicitly stating their role/status.
        - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
        - NEVER write "database ghosts", "system audit", "AI", or raw score percentage math.
 
@@ -85,7 +89,7 @@ module.exports = async function handler(req, res) {
       "frontman_name": "Original Lead Singer",
       "frontman_present": true,
       "is_currently_touring": true,
-      "editorial_summary": "3 to 5 sentence energetic Pitchfork-style paragraph with mandatory annotated member role breakdowns..."
+      "editorial_summary": "Paragraph 1\\n\\nOn stage: ... Absent/Missing: ...\\n\\nParagraph 3 verdict..."
     }
   `;
 
