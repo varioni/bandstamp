@@ -35,13 +35,17 @@ module.exports = async function handler(req, res) {
 
     2. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
        IF IS_CURRENTLY_TOURING = FALSE:
-       - Do NOT list "<strong>On stage:</strong>" or "<strong>Absent/Missing:</strong>" rosters.
+       - Do NOT list "On stage:" or "Absent/Missing:" rosters.
        - Write 2 short paragraphs explaining that the band is not touring, where surviving founders are now, and a brief Pitchfork closing statement.
 
        IF IS_CURRENTLY_TOURING = TRUE:
-       - Write 3 structured paragraphs including explicit "<strong>On stage:</strong>" and "<strong>Absent/Missing:</strong>" role breakdowns and a 2-sentence verdict.
+       - Paragraph 1: 1-2 short sentences max confirming active tour status. STRICTLY FORBIDDEN: Do NOT list cities, venue names, or date itineraries.
+       - Paragraph 2 (ROSTER BREAKDOWN WITH ANNOTATED ROLES):
+         "**On stage:** [Full Name (Instrument - Role)] joined by [Full Name (Instrument - Replacement)].\\n\\n**Absent/Missing:** [Full Name (Instrument - Role) OR 'None']."
+       - Paragraph 3: 2 sentences of direct, energetic Pitchfork-style verdict.
 
     3. STRICT FORBIDDEN ITEMS:
+       - NEVER list venue names, city lists, or date itineraries.
        - NEVER output raw literal line breaks inside JSON strings. Use \\n\\n instead.
        - NEVER write florid poetic clichés ("corporate chassis humming", "real alchemy", "museum-piece cosplay").
        - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
@@ -55,7 +59,7 @@ module.exports = async function handler(req, res) {
       "frontman_name": "Original Lead Singer",
       "frontman_present": false,
       "is_currently_touring": false,
-      "editorial_summary": "Short paragraph 1\\n\\n<strong>On stage:</strong> ... <strong>Absent/Missing:</strong> ...\\n\\nShort paragraph 3..."
+      "editorial_summary": "Short paragraph 1\\n\\n**On stage:** ...\\n\\n**Absent/Missing:** ...\\n\\nShort paragraph 3..."
     }
   `;
 
@@ -171,9 +175,11 @@ module.exports = async function handler(req, res) {
 
     let summary = (data.editorial_summary || `Updated audit for ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
 
+    summary = summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
     summary = summary
-      .replace(/On stage:/gi, '<strong>On stage:</strong>')
-      .replace(/Absent\/Missing:/gi, '<strong>Absent/Missing:</strong>');
+      .replace(/(?:<strong>)?On stage:(?:<\/strong>)?/gi, '<strong>On stage:</strong>')
+      .replace(/(?:<strong>)?Absent\/Missing:(?:<\/strong>)?/gi, '<strong>Absent/Missing:</strong>');
 
     const resultPayload = {
       band_name: data.band_name || bandName,
