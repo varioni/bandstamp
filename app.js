@@ -98,11 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
     bandHeading.textContent = data.band_name || currentBandName;
     tierBadge.textContent = data.tier_label || 'Audit Result';
 
-    // Set band photo URL with a real live rock concert fallback instead of DJ turntable
     const encodedName = encodeURIComponent(data.band_name || currentBandName);
     bandPhoto.src = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodedName}.jpg`;
     bandPhoto.onerror = () => {
-      // High-energy live rock stage fallback photo
       bandPhoto.src = `https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=800&q=80`;
     };
 
@@ -114,7 +112,15 @@ document.addEventListener('DOMContentLoaded', () => {
       stampOverlay.className = `stamp ${data.badge_type || 'red'}`;
     }
 
-    auditSummary.innerHTML = data.summary || '';
+    // Process summary text: convert markdown bold & build HTML paragraphs
+    let summaryText = data.summary || '';
+    summaryText = summaryText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    summaryText = summaryText.replace(/(?:<strong>)?On stage:(?:<\/strong>)?/gi, '<strong>On stage:</strong>');
+    summaryText = summaryText.replace(/(?:<strong>)?Absent\/Missing:(?:<\/strong>)?/gi, '<strong>Absent/Missing:</strong>');
+
+    const paragraphs = summaryText.split(/\\n\\n|\n\n/).filter(p => p.trim().length > 0);
+    auditSummary.innerHTML = paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
+
     resultCard.classList.remove('hidden');
   }
 });
