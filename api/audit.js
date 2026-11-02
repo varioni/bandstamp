@@ -68,26 +68,25 @@ module.exports = async function handler(req, res) {
        - If all baseline members are performing on stage and none are missing, touring_members_present MUST contain all baseline members.
        - Replacement musicians are NOT baseline members and CANNOT count toward touring_members_present.
 
-    3. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
+    3. EDITORIAL SUMMARY FORMAT (MANDATORY 3 PARAGRAPHS SEPARATED BY EXPLICIT \\n\\n):
 
-       IF IS_CURRENTLY_TOURING = FALSE (SHORT 1-2 PARAGRAPH SUMMARY):
+       IF IS_CURRENTLY_TOURING = FALSE:
        - Do NOT list "**On stage:**" or "**Absent/Missing:**" rosters.
-       - Paragraph 1 (1 short sentence): Confirm there are no upcoming tour dates for the band. Mention briefly if surviving founders perform solo or if the project is permanently defunct.
-       - Paragraph 2 (1 short sentence): Sharp, punchy Pitchfork closing on why the live era is over.
+       - Paragraph 1: Confirm there are no upcoming tour dates for the band.
+       - Paragraph 2: Sharp Pitchfork closing on why the live era is over.
 
-       IF IS_CURRENTLY_TOURING = TRUE (MANDATORY 3 PARAGRAPHS SEPARATED BY \\n\\n):
+       IF IS_CURRENTLY_TOURING = TRUE:
        - Paragraph 1: 1-2 short sentences max confirming active tour status. STRICTLY FORBIDDEN: Do NOT list cities, venue names, or date itineraries.
-       - Paragraph 2 (ROSTER BREAKDOWN):
+       - Paragraph 2: Roster breakdown:
          "**On stage:** [Full Name (Instrument - Role)] joined by [Full Name (Instrument - Replacement)].\\n\\n**Absent/Missing:** [Full Name (Instrument - Role) OR 'None']."
        - Paragraph 3: 2 sentences of direct, energetic Pitchfork-style verdict.
 
     4. STRICT FORBIDDEN ITEMS:
        - NEVER list venue names, city lists, or date itineraries.
-       - NEVER output raw literal line breaks inside JSON strings. Use \\n\\n instead.
-       - NEVER write florid poetic clichés ("corporate chassis humming", "real alchemy", "museum-piece cosplay", "database ghosts").
+       - NEVER write florid poetic clichés.
        - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
 
-    CRITICAL: Output MUST be valid single-line raw JSON only without markdown formatting:
+    CRITICAL: Output MUST be valid single-line raw JSON only:
     {
       "band_name": "Standardized Name",
       "debut_album": "Landmark Album/Era",
@@ -105,7 +104,9 @@ module.exports = async function handler(req, res) {
     const aiController = new AbortController();
     aiTimer = setTimeout(() => aiController.abort(), 20000);
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const openRouterEndpoint = "https://openrouter.ai/api/v1/chat/completions";
+
+    const response = await fetch(openRouterEndpoint, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
