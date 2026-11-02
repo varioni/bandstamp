@@ -231,6 +231,13 @@ module.exports = async function handler(req, res) {
         method: 'POST',
         body: JSON.stringify(resultPayload)
       }).catch(e => console.warn("Redis write warning:", e.message));
+
+      // Add active touring bands to the Redis index set
+      if (data.is_currently_touring) {
+        fetch(`${KV_URL}/sadd/active_bands/${encodeURIComponent(cacheKey)}`, {
+          headers: { Authorization: `Bearer ${KV_TOKEN}` }
+        }).catch(e => console.warn("Redis index error:", e.message));
+      }
     }
 
     return res.status(200).json({ ...resultPayload, cached: false });
