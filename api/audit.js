@@ -71,13 +71,13 @@ module.exports = async function handler(req, res) {
     3. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
 
        IF IS_CURRENTLY_TOURING = FALSE (SHORT 1-2 PARAGRAPH SUMMARY):
-       - Do NOT list "On stage:" or "Absent/Missing:" rosters.
+       - Do NOT list "**On stage:**" or "**Absent/Missing:**" rosters.
        - Paragraph 1 (1 short sentence): Confirm there are no upcoming tour dates for the band. Mention briefly if surviving founders perform solo or if the project is permanently defunct.
        - Paragraph 2 (1 short sentence): Sharp, punchy Pitchfork closing on why the live era is over.
 
        IF IS_CURRENTLY_TOURING = TRUE (MANDATORY 3 PARAGRAPHS SEPARATED BY \\n\\n):
-       - Paragraph 1: 1-2 short sentences max confirming active tour status (e.g., region or tour name). STRICTLY FORBIDDEN: Do NOT list cities, venue names, or date itineraries.
-       - Paragraph 2 (ROSTER BREAKDOWN WITH ANNOTATED ROLES):
+       - Paragraph 1: 1-2 short sentences max confirming active tour status. STRICTLY FORBIDDEN: Do NOT list cities, venue names, or date itineraries.
+       - Paragraph 2 (ROSTER BREAKDOWN):
          "**On stage:** [Full Name (Instrument - Role)] joined by [Full Name (Instrument - Replacement)].\\n\\n**Absent/Missing:** [Full Name (Instrument - Role) OR 'None']."
        - Paragraph 3: 2 sentences of direct, energetic Pitchfork-style verdict.
 
@@ -105,9 +105,7 @@ module.exports = async function handler(req, res) {
     const aiController = new AbortController();
     aiTimer = setTimeout(() => aiController.abort(), 20000);
 
-    const openRouterEndpoint = "https://openrouter.ai/api/v1/chat/completions";
-
-    const response = await fetch(openRouterEndpoint, {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
@@ -226,14 +224,6 @@ module.exports = async function handler(req, res) {
     }
 
     let summary = (data.editorial_summary || `Auditing ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
-
-    // Convert markdown bold **text** to <strong>text</strong>
-    summary = summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-    // Robust fallback: Force explicit strong tags for headers if still plain text
-    summary = summary
-      .replace(/(?:<strong>)?On stage:(?:<\/strong>)?/gi, '<strong>On stage:</strong>')
-      .replace(/(?:<strong>)?Absent\/Missing:(?:<\/strong>)?/gi, '<strong>Absent/Missing:</strong>');
 
     const resultPayload = {
       band_name: data.band_name || bandName,
