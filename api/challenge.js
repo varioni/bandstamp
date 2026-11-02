@@ -27,24 +27,31 @@ module.exports = async function handler(req, res) {
   }
 
   const systemInstruction = `
-    You are BandStamp lead inspector reviewing a user challenge for: ${bandName}.
-    User critique: "${critique}".
+    You are BandStamp lead inspector evaluating a band audit for: ${bandName}.
+    A user submitted this critique/query: "${critique}".
 
-    STRICT RE-AUDIT RULES:
-    1. FUTURE TOUR CHECK: If no active/upcoming tour exists under this band name, set is_currently_touring = false and touring_members_present = [].
+    STRICT RE-AUDIT & TRUTH-CHECK RULES:
+    1. FACT-CHECK MANDATE:
+       - Perform a web search to verify if the user's critique provides valid, verifiable new facts (e.g., a newly announced tour, a member returning/leaving).
+       - If the user's critique is vague (e.g. "Are you sure?", "Wrong", "Check again"), unverified, or factually incorrect, REJECT the critique and preserve the accurate baseline audit. Do NOT change facts unless new web evidence confirms it.
 
-    2. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
+    2. ABSOLUTE FORBIDDEN META-COMMENTARY:
+       - NEVER mention that you were challenged, asked "Are you sure?", or re-evaluating.
+       - NEVER refer to "the provided results", "the user query", "Pitchfork-wise safer call", or "according to sources".
+       - Write as an authoritative, definitive, direct Pitchfork-style rock journalist.
+
+    3. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
        IF IS_CURRENTLY_TOURING = FALSE (SHORT 2-PARAGRAPH SUMMARY):
        - STRICTLY FORBIDDEN: Do NOT include "**On stage:**" or "**Absent/Missing:**" roster breakdowns.
-       - Write 2 short paragraphs explaining that the band is not touring and a brief Pitchfork closing statement.
+       - Write 2 short paragraphs confirming there are no active tour dates and a direct Pitchfork closing statement.
 
-       IF IS_CURRENTLY_TOURING = TRUE:
+       IF IS_CURRENTLY_TOURING = TRUE (MANDATORY 3 PARAGRAPHS SEPARATED BY \\n\\n):
        - Paragraph 1: 1-2 short sentences max confirming active tour status. Do NOT list cities or venues.
-       - Paragraph 2 (ROSTER BREAKDOWN):
+       - Paragraph 2 (LINEUP BREAKDOWN):
          "**On stage:** [Names and annotated roles]\\n\\n**Absent/Missing:** [Classic baseline members not present OR 'None']."
        - Paragraph 3: 2 sentences of direct, energetic Pitchfork-style verdict.
 
-    3. STRICT FORBIDDEN ITEMS:
+    4. STRICT FORBIDDEN ITEMS:
        - NEVER list venue names, city lists, or date itineraries.
        - NEVER output raw literal line breaks inside JSON strings. Use \\n\\n instead.
        - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
@@ -67,9 +74,7 @@ module.exports = async function handler(req, res) {
     const aiController = new AbortController();
     aiTimer = setTimeout(() => aiController.abort(), 20000);
 
-    const openRouterEndpoint = "https://openrouter.ai/api/v1/chat/completions";
-
-    const response = await fetch(openRouterEndpoint, {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
@@ -81,7 +86,7 @@ module.exports = async function handler(req, res) {
         model: "perplexity/sonar",
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Re-evaluate lineup for ${bandName} considering critique: ${critique}` }
+          { role: "user", content: `Re-verify tour status and lineup for ${bandName} against critique: ${critique}` }
         ],
         max_tokens: 800,
         temperature: 0.0
@@ -124,7 +129,7 @@ module.exports = async function handler(req, res) {
           touring_members_present: [],
           frontman_present: false,
           is_currently_touring: false,
-          editorial_summary: `Re-audit completed for ${bandName}.`
+          editorial_summary: `No active tour dates currently announced for ${bandName}.`
         };
       }
     }
@@ -187,7 +192,9 @@ module.exports = async function handler(req, res) {
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
       fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
+        headers: { Authorization: `Bearer ${KV_TOKEN}` },
+        method: 'POST',
+        body: JSON.stringify(resultPayload)
       }).catch(e => console.warn("Redis write warning:", e.message));
     }
 
