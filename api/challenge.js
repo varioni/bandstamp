@@ -27,23 +27,23 @@ module.exports = async function handler(req, res) {
   }
 
   const systemInstruction = `
-    You are BandStamp lead inspector reviewing a user challenge/critique for: ${bandName}.
+    You are BandStamp lead inspector reviewing a user challenge for: ${bandName}.
     User critique: "${critique}".
 
     STRICT RE-AUDIT RULES:
-    1. FUTURE TOUR CHECK: Verify upcoming/future tour dates. If no future tour dates exist or the band is defunct, set is_currently_touring = false and touring_members_present = [].
-    
-    2. MEMBER AUDIT MANDATE: 
+    1. TONE: Energetic, witty, cynical Pitchfork rock journalism. Authoritative and punchy.
+    2. NO CITATIONS: NEVER include bracketed citations like [1], [2], [8], or reference URLs/sources.
+    3. MEMBER AUDIT MANDATE: 
        - Re-evaluate baseline classic members vs. physical stage performers based on user evidence and current facts.
-       - Explicitly identify who is on stage vs. who is missing/replaced.
-       - Replacement musicians are NOT baseline members, so they CANNOT count toward touring_members_present.
+       - Explicitly name who is physically on stage vs. who is absent/replaced.
+       - Replacement musicians are NOT baseline members and CANNOT count toward touring_members_present.
 
-    3. EDITORIAL SUMMARY FORMAT (3 to 5 full sentences):
+    4. EDITORIAL SUMMARY FORMAT (3 to 5 full sentences):
        - Sentence 1: Updated tour status and context.
-       - Sentences 2-3: Explicitly name who is physically on stage vs. who is absent/replaced (e.g., "Original members on stage include [Names]. Missing from the lineup are [Names], with [Replacements] filling the seats.").
-       - Sentences 4-5: Sharp, sardonic BandStamp editorial verdict on ticket authenticity.
+       - Sentences 2-3: Explicitly name who is physically on stage vs. who is absent/replaced.
+       - Sentences 4-5: Sharp, sardonic Pitchfork-style editorial verdict on lineup authenticity.
 
-    4. NO META-COMMENTARY OR MATH: Do NOT write "Audit note:", "Audit corrected:", or raw percentage figures inside editorial_summary text.
+    5. NO META-COMMENTARY OR MATH: Do NOT write "Audit note:", "Audit corrected:", or raw percentage figures inside editorial_summary text.
 
     CRITICAL: Output MUST be valid raw JSON only:
     {
@@ -54,7 +54,7 @@ module.exports = async function handler(req, res) {
       "frontman_name": "Original Lead Singer",
       "frontman_present": false,
       "is_currently_touring": true,
-      "editorial_summary": "3 to 5 sentence detailed paragraph explicitly naming on-stage vs missing members and editorial verdict..."
+      "editorial_summary": "3 to 5 sentence energetic Pitchfork-style paragraph with explicit member names and zero bracketed citations..."
     }
   `;
 
@@ -91,6 +91,8 @@ module.exports = async function handler(req, res) {
 
     const rawData = await response.json();
     let textOutput = rawData.choices[0].message.content.trim();
+    textOutput = textOutput.replace(/\[\d+\]/g, '');
+
     const jsonMatch = textOutput.match(/\{[\s\S]*\}/);
     if (jsonMatch) textOutput = jsonMatch[0];
 
@@ -123,7 +125,7 @@ module.exports = async function handler(req, res) {
     else if (finalScore >= 25) { tier_label = "Tier 4: Solo Project in Disguise"; badge_type = "orange"; }
     else { tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; badge_type = "red"; }
 
-    const summary = data.editorial_summary || `Updated audit for ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`;
+    let summary = (data.editorial_summary || `Updated audit for ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
 
     const resultPayload = {
       band_name: data.band_name,
