@@ -59,11 +59,13 @@ module.exports = async function handler(req, res) {
     STRICT AUDIT & ACCURACY RULES:
     1. HISTORICAL BASELINE MANDATE:
        - Define the definitive, classic breakthrough / peak commercial lineup for ${bandName}.
-       - For classic acts, baseline_members MUST include the core breakthrough members (e.g., for Lynyrd Skynyrd: Ronnie Van Zant, Gary Rossington, Allen Collins, Leon Wilkeson, Billy Powell, Bob Burns, Ed King).
+       - For classic acts (e.g. The Offspring), baseline_members MUST include all classic core members (e.g. Dexter Holland, Noodles, Greg K., Ron Welty).
+       - Never restrict baseline_members to only the currently active touring members.
 
-    2. ZERO-FOUNDER / GHOST SHIP MANDATE:
-       - If ZERO original founding or peak-era breakthrough members are alive and physically performing on stage (e.g. Lynyrd Skynyrd today), set zero_classic_members_on_stage = true and touring_members_present = [].
-       - Replacement family members (e.g. Johnny Van Zant) or later revival hires DO NOT count as classic baseline members.
+    2. ZERO-FOUNDER / STAGE AUDIT MANDATE:
+       - touring_members_present MUST ONLY contain classic baseline members who are physically performing on stage right now. 
+       - Replacement or touring musicians (e.g. Todd Morse, Jonah Nimoy, Brandon Pertzborn) DO NOT count in touring_members_present.
+       - If classic members are absent (e.g. Noodles taking a leave, Greg K. fired), they MUST be listed under Absent/Missing.
 
     3. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
 
@@ -75,11 +77,11 @@ module.exports = async function handler(req, res) {
        IF IS_CURRENTLY_TOURING = TRUE (MANDATORY 3 PARAGRAPHS SEPARATED BY \\n\\n):
        - Paragraph 1: 1-2 short sentences max confirming active tour status. STRICTLY FORBIDDEN: Do NOT list cities, venue names, or date itineraries.
        - Paragraph 2 (LINEUP BREAKDOWN):
-         "**On stage:** [Names and annotated roles]\\n\\n**Absent/Missing:** [Classic baseline members not present]."
+         "**On stage:** [Names and annotated roles]\\n\\n**Absent/Missing:** [Classic baseline members not present OR 'None']."
        - Paragraph 3: 2 sentences of sharp, energetic Pitchfork-style verdict.
 
     4. STRICT FORBIDDEN ITEMS:
-       - NEVER mention that this is an AI response or re-audit.
+       - NEVER output 100% purity if key classic members are missing under Absent/Missing.
        - NEVER list venue names, city lists, or date itineraries.
        - NEVER output raw literal line breaks inside JSON strings. Use \\n\\n instead.
        - NEVER output bracketed citations like [1], [2], [8], or reference URLs.
@@ -88,11 +90,11 @@ module.exports = async function handler(req, res) {
     {
       "band_name": "Standardized Name",
       "debut_album": "Landmark Album/Era",
-      "baseline_members": ["Member 1", "Member 2"],
-      "touring_members_present": [],
-      "zero_classic_members_on_stage": true,
-      "frontman_name": "Original Lead Singer",
-      "frontman_present": false,
+      "baseline_members": ["Dexter Holland", "Noodles", "Greg K."],
+      "touring_members_present": ["Dexter Holland"],
+      "zero_classic_members_on_stage": false,
+      "frontman_name": "Dexter Holland",
+      "frontman_present": true,
       "is_currently_touring": true,
       "editorial_summary": "Short paragraph 1\\n\\n**On stage:** ...\\n\\n**Absent/Missing:** ...\\n\\nShort paragraph 3..."
     }
@@ -167,8 +169,27 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const baselineList = data.baseline_members || [];
+    let baselineList = data.baseline_members || [];
     let touringList = data.touring_members_present || [];
+    let summaryText = data.editorial_summary || '';
+
+    // HARD GUARDRAIL: Cross-verify Absent/Missing text against touring payload
+    const absentMatch = summaryText.match(/Absent\/Missing:\s*([^.\n]+)/i);
+    if (absentMatch) {
+      const absentSection = absentMatch[1].trim();
+      if (!absentSection.toLowerCase().includes('none')) {
+        // If Absent/Missing names members, filter out those members from touringList
+        touringList = touringList.filter(m => {
+          const mName = m.toLowerCase();
+          return !absentSection.toLowerCase().includes(mName);
+        });
+        
+        // Ensure baseline includes missing members if AI omitted them from baseline
+        if (touringList.length === baselineList.length && baselineList.length > 0) {
+          baselineList.push("Missing Core Member");
+        }
+      }
+    }
 
     if (data.is_currently_touring === false || data.zero_classic_members_on_stage === true) {
       touringList = [];
@@ -213,7 +234,7 @@ module.exports = async function handler(req, res) {
       badge_type = "red"; 
     }
 
-    let summary = (data.editorial_summary || `Auditing ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
+    let summary = summaryText.replace(/\[\d+\]/g, '');
 
     const resultPayload = {
       band_name: data.band_name || bandName,
@@ -232,7 +253,6 @@ module.exports = async function handler(req, res) {
         body: JSON.stringify(resultPayload)
       }).catch(e => console.warn("Redis write warning:", e.message));
 
-      // Add active touring bands to the Redis index set
       if (data.is_currently_touring) {
         fetch(`${KV_URL}/sadd/active_bands/${encodeURIComponent(cacheKey)}`, {
           headers: { Authorization: `Bearer ${KV_TOKEN}` }
