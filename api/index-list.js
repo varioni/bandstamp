@@ -1,7 +1,7 @@
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -16,18 +16,31 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // 1. Fetch all keys stored in Redis starting with 'band:'
-    const keysRes = await fetch(`${KV_URL}/keys/band:*`, {
+    // 1. Get all active touring band cache keys from Redis set
+    const membersRes = await fetch(`${KV_URL}/smembers/active_bands`, {
       headers: { Authorization: `Bearer ${KV_TOKEN}` }
     });
     
-    if (!keysRes.ok) return res.status(200).json({ bands: [] });
-    const keysData = await keysRes.json();
-    const keys = keysData.result || [];
+    let keys = [];
+    if (membersRes.ok) {
+      const membersData = await membersRes.json();
+      keys = membersData.result || [];
+    }
+
+    // Fallback to pattern matching if active_bands set is empty
+    if (keys.length === 0) {
+      const keysRes = await fetch(`${KV_URL}/keys/band:*`, {
+        headers: { Authorization: `Bearer ${KV_TOKEN}` }
+      });
+      if (keysRes.ok) {
+        const keysData = await keysRes.json();
+        keys = keysData.result || [];
+      }
+    }
 
     if (keys.length === 0) return res.status(200).json({ bands: [] });
 
-    // 2. Fetch payloads for all cached bands
+    // 2. Fetch all band payloads from Redis
     const bands = [];
     for (const key of keys) {
       try {
@@ -38,7 +51,6 @@ module.exports = async function handler(req, res) {
           const item = await getRes.json();
           if (item.result) {
             const parsed = typeof item.result === 'string' ? JSON.parse(item.result) : item.result;
-            // Filter: Only include active touring bands
             if (parsed.currently_touring) {
               bands.push(parsed);
             }
@@ -49,7 +61,7 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // 3. Stack rank descending by calculated_score
+    // 3. Sort descending by calculated score
     bands.sort((a, b) => b.calculated_score - a.calculated_score);
 
     return res.status(200).json({ bands });
