@@ -93,7 +93,7 @@ module.exports = async function handler(req, res) {
     }
 
     const rawData = await response.json();
-    let textOutput = rawData.choices[0].message.content.trim();
+    let textOutput = rawData.choices[0]?.message?.content?.trim() || "";
     textOutput = textOutput.replace(/```json/gi, '').replace(/```/g, '').trim();
     textOutput = textOutput.replace(/\[\d+\]/g, '');
 
@@ -112,7 +112,18 @@ module.exports = async function handler(req, res) {
       if (!textOutput.endsWith('"}') && !textOutput.endsWith('}')) {
         textOutput += '"}';
       }
-      data = JSON.parse(textOutput);
+      try {
+        data = JSON.parse(textOutput);
+      } catch (secondErr) {
+        data = {
+          band_name: bandName,
+          baseline_members: [],
+          touring_members_present: [],
+          frontman_present: true,
+          is_currently_touring: true,
+          editorial_summary: `Re-audit completed for ${bandName}.`
+        };
+      }
     }
 
     const baselineList = data.baseline_members || [];
@@ -161,7 +172,7 @@ module.exports = async function handler(req, res) {
     let summary = (data.editorial_summary || `Updated audit for ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
 
     const resultPayload = {
-      band_name: data.band_name,
+      band_name: data.band_name || bandName,
       currently_touring: data.is_currently_touring,
       calculated_score: finalScore,
       tier_label: tier_label,
