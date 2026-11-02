@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentBandName = '';
 
+  const fallbackUrl = 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=800&q=80';
+
   // Color-coded tier score map
   const tierColorMap = {
     gold: '#ffd700',
@@ -72,28 +74,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadTicker();
 
-  // Dynamic Wikimedia Commons Search API fetcher
+  // Robust Wikipedia/Wikimedia lead image fetcher with extension filtering
   async function fetchBandPhoto(bandName) {
-    const fallbackUrl = 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=800&q=80';
     try {
+      // 1. Try Wikipedia Page Summary API for official page lead image
+      const wikiSummaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bandName)}`;
+      const wikiRes = await fetch(wikiSummaryUrl);
+      if (wikiRes.ok) {
+        const wikiData = await wikiRes.json();
+        const mainImgUrl = wikiData?.thumbnail?.source || wikiData?.originalimage?.source;
+        if (mainImgUrl && isValidImageUrl(mainImgUrl)) {
+          return mainImgUrl;
+        }
+      }
+
+      // 2. Fallback to Wikimedia Commons search with SVG/TIFF filtering
       const query = encodeURIComponent(`${bandName} band concert live`);
-      const apiUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&percent=90&gsrsearch=${query}&gsrnamespace=6&gsrlimit=1&prop=imageinfo&iiprop=url&format=json&origin=*`;
+      const commonsUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${query}&gsrnamespace=6&gsrlimit=5&prop=imageinfo&iiprop=url&format=json&origin=*`;
 
-      const response = await fetch(apiUrl);
-      if (!response.ok) return fallbackUrl;
+      const commonsRes = await fetch(commonsUrl);
+      if (!commonsRes.ok) return fallbackUrl;
 
-      const data = await response.json();
-      if (!data.query || !data.query.pages) return fallbackUrl;
+      const commonsData = await commonsRes.json();
+      if (!commonsData.query || !commonsData.query.pages) return fallbackUrl;
 
-      const pages = data.query.pages;
-      const firstPageKey = Object.keys(pages)[0];
-      const imageInfo = pages[firstPageKey]?.imageinfo?.[0];
+      const pages = Object.values(commonsData.query.pages);
+      for (const page of pages) {
+        const imgUrl = page?.imageinfo?.[0]?.url;
+        if (imgUrl && isValidImageUrl(imgUrl)) {
+          return imgUrl;
+        }
+      }
 
-      return imageInfo?.url || fallbackUrl;
+      return fallbackUrl;
     } catch (e) {
-      console.warn('Wikimedia image search error:', e.message);
+      console.warn('Band photo fetch error:', e.message);
       return fallbackUrl;
     }
+  }
+
+  function isValidImageUrl(url) {
+    const lower = url.toLowerCase();
+    // Exclude vector SVGs, TIFFs, audio files, and non-raster media
+    if (lower.endsWith('.svg') || lower.endsWith('.tif') || lower.endsWith('.tiff') || lower.endsWith('.ogg')) {
+      return false;
+    }
+    return lower.includes('.jpg') || lower.includes('.jpeg') || lower.includes('.png') || lower.includes('.webp');
   }
 
   stampBtn.addEventListener('click', (e) => {
@@ -179,7 +205,12 @@ document.addEventListener('DOMContentLoaded', () => {
     tierBadge.textContent = data.tier_label || 'Audit Result';
     tierBadge.className = `tier-badge-text ${data.badge_type || 'gold'}`;
 
-    // Dynamically search Wikimedia for a real photo matching the band
+    // Assign fallback image handler if browser fails to load returned image URL
+    bandPhoto.onerror = () => {
+      bandPhoto.src = fallbackUrl;
+    };
+
+    // Dynamically search Wikipedia / Wikimedia for an image
     const photoUrl = await fetchBandPhoto(data.band_name || currentBandName);
     bandPhoto.src = photoUrl;
 
