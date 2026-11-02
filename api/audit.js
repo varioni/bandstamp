@@ -53,21 +53,23 @@ module.exports = async function handler(req, res) {
   }
 
   const systemInstruction = `
-    You are BandStamp lead inspector. Search the web for UPCOMING/FUTURE live tour dates and active stage lineup for: ${bandName}.
+    You are BandStamp lead inspector—a sharp, energetic, Pitchfork-style rock music critic. 
+    Search the web for active/upcoming live tour dates and stage lineup for: ${bandName}.
 
     STRICT AUDIT RULES:
-    1. FUTURE TOUR CHECK: Search for upcoming/future announced shows relative to today. If no future tour dates exist or the band is defunct/dormant, set is_currently_touring = false and touring_members_present = [].
+    1. TOUR CHECK: Check for upcoming live tour dates. If no future dates exist or the band is defunct/dormant, set is_currently_touring = false and touring_members_present = [].
     
     2. MEMBER AUDIT MANDATE: 
-       - Identify the baseline classic/landmark members.
-       - Identify who among them is physically performing on stage for upcoming dates.
-       - Identify who is missing, deceased, or studio-only, and name their live touring replacements.
-       - Replacement musicians are NOT baseline members, so they CANNOT count toward touring_members_present.
+       - Identify classic breakthrough baseline members.
+       - Identify who among them is physically performing on stage.
+       - Replacement musicians are NOT baseline members and CANNOT count toward touring_members_present.
 
-    3. EDITORIAL SUMMARY FORMAT (3 to 5 full sentences):
-       - Sentence 1: Upcoming tour status and context (or explicit notice that no future shows are scheduled).
-       - Sentences 2-3: Explicitly name who is physically on stage vs. who is absent/replaced (e.g., "Original members on stage include [Names]. Missing from the lineup are [Names], with [Replacements] filling the seats.").
-       - Sentences 4-5: Sharp, sardonic BandStamp editorial verdict on ticket authenticity and whether buyers are getting the real deal.
+    3. EDITORIAL SUMMARY TONE & FORMAT (3 to 5 full sentences):
+       - TONE: Energetic, witty, cynical Pitchfork rock journalism. Authoritative and punchy.
+       - NO CITATIONS: NEVER include bracketed citations like [1], [2], [8], or reference URLs/sources.
+       - Sentence 1: Upcoming tour context.
+       - Sentences 2-3: Explicitly name who is physically on stage vs. who is absent/replaced (e.g., "Mike Shinoda, Dave Farrell, and Joe Hahn anchor the live stage. Absent are Chester Bennington and Rob Bourdon, with Emily Armstrong and Colin Brittain filling the voids.").
+       - Sentences 4-5: Sharp, sardonic editorial judgment on whether this incarnation preserves the band's original soul.
 
     4. NO META-COMMENTARY OR MATH: Do NOT write "Audit note:", "Audit corrected:", or raw percentage figures inside editorial_summary text.
 
@@ -80,7 +82,7 @@ module.exports = async function handler(req, res) {
       "frontman_name": "Original Lead Singer",
       "frontman_present": false,
       "is_currently_touring": true,
-      "editorial_summary": "3 to 5 sentence detailed paragraph explicitly naming on-stage vs missing members and editorial verdict..."
+      "editorial_summary": "3 to 5 sentence energetic Pitchfork-style paragraph with explicit member names and zero bracketed citations..."
     }
   `;
 
@@ -101,7 +103,7 @@ module.exports = async function handler(req, res) {
         model: "perplexity/sonar",
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Search upcoming future tour dates and touring lineup for: ${bandName}` }
+          { role: "user", content: `Search active upcoming tour dates and touring lineup for: ${bandName}` }
         ],
         max_tokens: 500,
         temperature: 0.0
@@ -117,6 +119,10 @@ module.exports = async function handler(req, res) {
 
     const rawData = await response.json();
     let textOutput = rawData.choices[0].message.content.trim();
+    
+    // Strip any lingering bracketed citations like [1], [2][8], etc.
+    textOutput = textOutput.replace(/\[\d+\]/g, '');
+
     const jsonMatch = textOutput.match(/\{[\s\S]*\}/);
     if (jsonMatch) textOutput = jsonMatch[0];
 
@@ -149,7 +155,8 @@ module.exports = async function handler(req, res) {
     else if (finalScore >= 25) { tier_label = "Tier 4: Solo Project in Disguise"; badge_type = "orange"; }
     else { tier_label = "Tier 5: The Ghost Ship (Zombie Franchise)"; badge_type = "red"; }
 
-    const summary = data.editorial_summary || `Auditing ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`;
+    // Strip citations from editorial summary if any slipped through inside JSON
+    let summary = (data.editorial_summary || `Auditing ${data.band_name}: ${presentBase} of ${totalBase} baseline members on stage.`).replace(/\[\d+\]/g, '');
 
     const resultPayload = {
       band_name: data.band_name,
