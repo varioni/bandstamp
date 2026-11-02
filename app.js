@@ -179,13 +179,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (stampOverlay) {
       stampOverlay.textContent = `${data.calculated_score}% PURITY`;
-      stampOverlay.classList.add(data.badge_type);
+      stampOverlay.className = `stamp ${data.badge_type}`;
     }
 
-    // Explicitly make result card visible
     resultCard?.classList.remove('hidden');
 
-    // Ensure challenge button is visible
     if (challengeToggleBtn) {
       challengeToggleBtn.style.display = 'inline-block';
     }
