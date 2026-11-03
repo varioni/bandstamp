@@ -23,7 +23,7 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Please provide a meaningful challenge description (5-300 characters).' });
   }
 
-  // 2. Enforce IP Rate Limit (Max 5 challenges per IP per hour)
+  // 2. Enforce IP Rate Limit (Max 5 total challenges per IP per hour)
   const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
   const rateCheck = await checkRateLimit(clientIp, 'challenge', 5, 3600);
   if (!rateCheck.allowed) {
@@ -46,7 +46,7 @@ module.exports = async function handler(req, res) {
   const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
   const challengeCountKey = `challenges:count:${cacheKey}`;
 
-  // 3. Track and verify challenge threshold in Redis
+  // 3. Track and verify per-band challenge threshold in Redis
   let challengeCount = 1;
   if (KV_URL && KV_TOKEN) {
     try {
@@ -67,8 +67,8 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // 4. QUARANTINE TRIGGER: If band has been challenged more than 3 times, pull from index pending manual review
-  if (challengeCount > 3) {
+  // 4. QUARANTINE TRIGGER: 3 challenges on this specific band removes it from public index
+  if (challengeCount >= 3) {
     const quarantinedPayload = {
       band_name: bandName,
       currently_touring: true,
@@ -80,7 +80,6 @@ module.exports = async function handler(req, res) {
 
     if (KV_URL && KV_TOKEN) {
       try {
-        // Save quarantine status
         await fetch(`${KV_URL}`, {
           method: 'POST',
           headers: {
@@ -90,7 +89,6 @@ module.exports = async function handler(req, res) {
           body: JSON.stringify(['SET', cacheKey, JSON.stringify(quarantinedPayload)])
         });
 
-        // Remove from active public index set
         await fetch(`${KV_URL}`, {
           method: 'POST',
           headers: {
@@ -107,19 +105,20 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ...quarantinedPayload, cached: false });
   }
 
-  // 5. Regular Challenge AI Re-Audit Logic (Challenges 1 to 3)
+  // 5. Regular Challenge AI Re-Audit Logic (Challenges 1 and 2)
   const systemInstruction = `
-    You are BandStamp lead inspector evaluating a user challenge for: ${bandName}.
-    User critique: "${critique}".
+    You are BandStamp lead inspector evaluating a live lineup audit for: ${bandName}.
+    New fact-checking pointer provided for web search: "${critique}".
 
     STRICT RE-AUDIT RULES:
     1. FACT-CHECK MANDATE:
-       - Perform a web search to verify if the user's critique provides valid new facts.
-       - Ensure touring_members_present ONLY contains classic baseline members. Replacement members DO NOT count.
+       - Use the web search pointer to verify updated tour dates, departures, or returns.
+       - Ensure touring_members_present ONLY contains classic baseline members physically on stage.
 
-    2. ABSOLUTE FORBIDDEN META-COMMENTARY:
-       - NEVER mention being challenged or re-evaluating.
-       - Write as an authoritative Pitchfork-style rock journalist.
+    2. ABSOLUTE FORBIDDEN META-COMMENTARY & USER INPUT OMISSION:
+       - NEVER mention or quote the user input, challenge submission, or critique text.
+       - NEVER use phrases like "In response to...", "According to the user...", "As challenged...", or "After re-evaluating...".
+       - Write as if this is the clean, authoritative, original Pitchfork-style rock journalism piece for BandStamp.
 
     3. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
        IF IS_CURRENTLY_TOURING = FALSE:
@@ -162,7 +161,7 @@ module.exports = async function handler(req, res) {
         model: "perplexity/sonar",
         messages: [
           { role: "system", content: systemInstruction },
-          { role: "user", content: `Re-verify lineup for ${bandName} with critique: ${critique}` }
+          { role: "user", content: `Re-verify lineup for ${bandName} using search pointer: ${critique}` }
         ],
         max_tokens: 800,
         temperature: 0.0
