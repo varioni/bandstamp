@@ -1,8 +1,8 @@
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  // Cache response for 10 seconds at the edge to reduce database hits under high concurrency
-  res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=59');
+  // Cache at Vercel Edge for 60 seconds to slash Redis reads during traffic spikes
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -17,7 +17,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // 1. Fetch all active band keys from the Redis set
+    // 1. Fetch active band keys set (1 command)
     const membersRes = await fetch(`${KV_URL}`, {
       method: 'POST',
       headers: {
@@ -33,7 +33,7 @@ module.exports = async function handler(req, res) {
       keys = membersData.result || [];
     }
 
-    // Fallback to pattern search if active_bands set is empty
+    // Fallback search if active_bands set is empty
     if (keys.length === 0) {
       const keysRes = await fetch(`${KV_URL}`, {
         method: 'POST',
@@ -51,7 +51,7 @@ module.exports = async function handler(req, res) {
 
     if (keys.length === 0) return res.status(200).json({ bands: [] });
 
-    // 2. BATCH FETCH: Fetch ALL payloads in 1 single HTTP MGET request to Redis
+    // 2. BATCH MGET: Fetch ALL band objects in exactly 1 command
     const mgetRes = await fetch(`${KV_URL}`, {
       method: 'POST',
       headers: {
@@ -70,17 +70,16 @@ module.exports = async function handler(req, res) {
         if (!item) continue;
         try {
           const parsed = typeof item === 'string' ? JSON.parse(item) : item;
-          // Filter out quarantined or non-touring bands
           if (parsed.currently_touring && parsed.calculated_score >= 0) {
             bands.push(parsed);
           }
         } catch (e) {
-          // Ignore parse errors on individual keys
+          // Skip invalid JSON
         }
       }
     }
 
-    // 3. Sort descending by purity score
+    // 3. Sort descending by calculated score
     bands.sort((a, b) => b.calculated_score - a.calculated_score);
 
     return res.status(200).json({ bands });
