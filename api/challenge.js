@@ -1,3 +1,5 @@
+const { isValidBandName, checkRateLimit } = require('./utils');
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,8 +13,23 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { bandName, critique } = req.body || {};
-  if (!bandName || !critique) {
-    return res.status(400).json({ error: 'Band name and critique are required' });
+  
+  // 1. Validate Input Strings
+  if (!bandName || !isValidBandName(bandName)) {
+    return res.status(400).json({ error: 'Invalid band name submitted.' });
+  }
+
+  if (!critique || typeof critique !== 'string' || critique.trim().length < 5 || critique.trim().length > 300) {
+    return res.status(400).json({ error: 'Please provide a meaningful challenge description (5-300 characters).' });
+  }
+
+  // 2. Enforce IP Rate Limit (Max 5 challenges per IP per hour)
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  const rateCheck = await checkRateLimit(clientIp, 'challenge', 5, 3600);
+  if (!rateCheck.allowed) {
+    return res.status(429).json({ 
+      error: 'Hourly challenge limit reached for your IP address. Please try again later!' 
+    });
   }
 
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -26,6 +43,71 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: 'OPENROUTER_API_KEY missing in Vercel environment variables.' });
   }
 
+  const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
+  const challengeCountKey = `challenges:count:${cacheKey}`;
+
+  // 3. Track and verify challenge threshold in Redis
+  let challengeCount = 1;
+  if (KV_URL && KV_TOKEN) {
+    try {
+      const incrRes = await fetch(`${KV_URL}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${KV_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(['INCR', challengeCountKey])
+      });
+      if (incrRes.ok) {
+        const countData = await incrRes.json();
+        challengeCount = countData.result || 1;
+      }
+    } catch (e) {
+      console.warn("Challenge count increment error:", e.message);
+    }
+  }
+
+  // 4. QUARANTINE TRIGGER: If band has been challenged more than 3 times, pull from index pending manual review
+  if (challengeCount > 3) {
+    const quarantinedPayload = {
+      band_name: bandName,
+      currently_touring: true,
+      calculated_score: -1,
+      tier_label: "Under Audit Review",
+      badge_type: "quarantine",
+      summary: `This audit has been challenged multiple times by the community and is currently removed from the public index pending manual inspector review.`
+    };
+
+    if (KV_URL && KV_TOKEN) {
+      try {
+        // Save quarantine status
+        await fetch(`${KV_URL}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${KV_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(['SET', cacheKey, JSON.stringify(quarantinedPayload)])
+        });
+
+        // Remove from active public index set
+        await fetch(`${KV_URL}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${KV_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(['SREM', 'active_bands', cacheKey])
+        });
+      } catch (err) {
+        console.error("Redis quarantine save error:", err.message);
+      }
+    }
+
+    return res.status(200).json({ ...quarantinedPayload, cached: false });
+  }
+
+  // 5. Regular Challenge AI Re-Audit Logic (Challenges 1 to 3)
   const systemInstruction = `
     You are BandStamp lead inspector evaluating a user challenge for: ${bandName}.
     User critique: "${critique}".
@@ -133,7 +215,6 @@ module.exports = async function handler(req, res) {
     let touringList = data.touring_members_present || [];
     let summaryText = data.editorial_summary || '';
 
-    // Guardrail: Cross-verify Absent/Missing text against touring payload
     const absentMatch = summaryText.match(/Absent\/Missing:\s*([^.\n]+)/i);
     if (absentMatch) {
       const absentSection = absentMatch[1].trim();
@@ -203,14 +284,10 @@ module.exports = async function handler(req, res) {
       summary: summary
     };
 
-    const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
-
-    // Overwrite the entry in Redis DB
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
 
       try {
-        // SET key payload command (Overwrites old entry)
         await fetch(`${KV_URL}`, {
           method: 'POST',
           headers: {
@@ -220,7 +297,6 @@ module.exports = async function handler(req, res) {
           body: JSON.stringify(['SET', cacheKey, JSON.stringify(resultPayload), 'EX', ttlSeconds])
         });
 
-        // Ensure band is in active_bands set or removed if no longer touring
         if (data.is_currently_touring) {
           await fetch(`${KV_URL}`, {
             method: 'POST',
