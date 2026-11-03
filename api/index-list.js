@@ -1,14 +1,15 @@
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  // Cache response for 10 seconds at the edge to reduce database hits under high concurrency
+  res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=59');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  let KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  let KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.UPSTASH_REDIS_URL;
+  const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.UPSTASH_REDIS_TOKEN;
 
-  if (KV_URL && !KV_URL.startsWith('http')) KV_URL = null;
+  if (KV_URL && !KV_URL.startsWith('http')) KV_URL = `https://${KV_URL}`;
   if (KV_URL && KV_URL.endsWith('/')) KV_URL = KV_URL.slice(0, -1);
 
   if (!KV_URL || !KV_TOKEN) {
@@ -16,44 +17,66 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // 1. Fetch all keys matching pattern 'band:*' directly from Redis
-    const keysRes = await fetch(`${KV_URL}/keys/band:*`, {
-      headers: { Authorization: `Bearer ${KV_TOKEN}` }
+    // 1. Fetch all active band keys from the Redis set
+    const membersRes = await fetch(`${KV_URL}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${KV_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(['SMEMBERS', 'active_bands'])
     });
     
     let keys = [];
-    if (keysRes.ok) {
-      const keysData = await keysRes.json();
-      keys = keysData.result || [];
+    if (membersRes.ok) {
+      const membersData = await membersRes.json();
+      keys = membersData.result || [];
+    }
+
+    // Fallback to pattern search if active_bands set is empty
+    if (keys.length === 0) {
+      const keysRes = await fetch(`${KV_URL}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${KV_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(['KEYS', 'band:*'])
+      });
+      if (keysRes.ok) {
+        const keysData = await keysRes.json();
+        keys = keysData.result || [];
+      }
     }
 
     if (keys.length === 0) return res.status(200).json({ bands: [] });
 
-    // 2. Fetch payloads for all band keys using POST commands to handle any key formatting
-    const bands = [];
-    for (const key of keys) {
-      try {
-        const getRes = await fetch(`${KV_URL}`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${KV_TOKEN}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(['GET', key])
-        });
+    // 2. BATCH FETCH: Fetch ALL payloads in 1 single HTTP MGET request to Redis
+    const mgetRes = await fetch(`${KV_URL}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${KV_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(['MGET', ...keys])
+    });
 
-        if (getRes.ok) {
-          const item = await getRes.json();
-          if (item.result) {
-            const parsed = typeof item.result === 'string' ? JSON.parse(item.result) : item.result;
-            // Only include currently active touring bands in the index
-            if (parsed.currently_touring) {
-              bands.push(parsed);
-            }
+    const bands = [];
+    if (mgetRes.ok) {
+      const mgetData = await mgetRes.json();
+      const rawResults = mgetData.result || [];
+
+      for (const item of rawResults) {
+        if (!item) continue;
+        try {
+          const parsed = typeof item === 'string' ? JSON.parse(item) : item;
+          // Filter out quarantined or non-touring bands
+          if (parsed.currently_touring && parsed.calculated_score >= 0) {
+            bands.push(parsed);
           }
+        } catch (e) {
+          // Ignore parse errors on individual keys
         }
-      } catch (e) {
-        console.warn("Error reading key:", key, e.message);
       }
     }
 
