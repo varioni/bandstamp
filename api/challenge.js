@@ -16,10 +16,10 @@ module.exports = async function handler(req, res) {
   }
 
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-  let KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  let KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.UPSTASH_REDIS_URL;
+  const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.UPSTASH_REDIS_TOKEN;
 
-  if (KV_URL && !KV_URL.startsWith('http')) KV_URL = null;
+  if (KV_URL && !KV_URL.startsWith('http')) KV_URL = `https://${KV_URL}`;
   if (KV_URL && KV_URL.endsWith('/')) KV_URL = KV_URL.slice(0, -1);
 
   if (!OPENROUTER_API_KEY) {
@@ -133,7 +133,7 @@ module.exports = async function handler(req, res) {
     let touringList = data.touring_members_present || [];
     let summaryText = data.editorial_summary || '';
 
-    // HARD GUARDRAIL: Cross-verify Absent/Missing text against touring payload
+    // Guardrail: Cross-verify Absent/Missing text against touring payload
     const absentMatch = summaryText.match(/Absent\/Missing:\s*([^.\n]+)/i);
     if (absentMatch) {
       const absentSection = absentMatch[1].trim();
@@ -204,26 +204,44 @@ module.exports = async function handler(req, res) {
     };
 
     const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
+
+    // Overwrite the entry in Redis DB
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
 
-      // Await cached payload write
-      await fetch(`${KV_URL}/set/${cacheKey}/${encodeURIComponent(JSON.stringify(resultPayload))}?EX=${ttlSeconds}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` },
-        method: 'POST',
-        body: JSON.stringify(resultPayload)
-      }).catch(e => console.warn("Redis write warning:", e.message));
-
-      // Await active_bands index set write
-      if (data.is_currently_touring) {
+      try {
+        // SET key payload command (Overwrites old entry)
         await fetch(`${KV_URL}`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${KV_TOKEN}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(['SADD', 'active_bands', cacheKey])
-        }).catch(e => console.warn("Redis index error:", e.message));
+          body: JSON.stringify(['SET', cacheKey, JSON.stringify(resultPayload), 'EX', ttlSeconds])
+        });
+
+        // Ensure band is in active_bands set or removed if no longer touring
+        if (data.is_currently_touring) {
+          await fetch(`${KV_URL}`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${KV_TOKEN}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(['SADD', 'active_bands', cacheKey])
+          });
+        } else {
+          await fetch(`${KV_URL}`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${KV_TOKEN}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(['SREM', 'active_bands', cacheKey])
+          });
+        }
+      } catch (redisErr) {
+        console.error("Upstash Redis challenge overwrite failed:", redisErr.message);
       }
     }
 
