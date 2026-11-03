@@ -1,3 +1,5 @@
+const { isValidBandName, checkRateLimit } = require('./utils');
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -6,18 +8,27 @@ module.exports = async function handler(req, res) {
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Content-Type'
   );
-  
-  res.setHeader('Cache-Control', 's-maxage=43200, stale-while-revalidate=21600');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { bandName } = req.body || {};
-  if (!bandName) return res.status(400).json({ error: 'Band name is required' });
+
+  // 1. Validate Band Name String Format
+  if (!bandName || !isValidBandName(bandName)) {
+    return res.status(400).json({ error: 'Please enter a valid band or artist name.' });
+  }
+
+  // 2. Enforce IP Rate Limit (Max 15 new audits per IP per hour)
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  const rateCheck = await checkRateLimit(clientIp, 'audit', 15, 3600);
+  if (!rateCheck.allowed) {
+    return res.status(429).json({ 
+      error: 'Hourly search limit reached. Please take a break and try again later!' 
+    });
+  }
 
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-  
-  // Support all Vercel + Upstash Redis environment variable naming schemes
   let KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.UPSTASH_REDIS_URL;
   const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.UPSTASH_REDIS_TOKEN;
 
@@ -26,7 +37,7 @@ module.exports = async function handler(req, res) {
 
   const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
 
-  // Read from Redis Cache
+  // Read from Redis Cache FIRST (Cached hits do not call OpenRouter)
   if (KV_URL && KV_TOKEN) {
     try {
       const kvController = new AbortController();
@@ -70,7 +81,6 @@ module.exports = async function handler(req, res) {
        - If classic members are absent, they MUST be listed under Absent/Missing.
 
     3. EDITORIAL SUMMARY FORMAT (BRANCHING LOGIC):
-
        IF IS_CURRENTLY_TOURING = FALSE (SHORT 2-PARAGRAPH SUMMARY):
        - STRICTLY FORBIDDEN: Do NOT include "**On stage:**" or "**Absent/Missing:**" roster breakdowns.
        - Paragraph 1 (1-2 short sentences): Confirm there are no active tour dates.
@@ -173,7 +183,6 @@ module.exports = async function handler(req, res) {
     let touringList = data.touring_members_present || [];
     let summaryText = data.editorial_summary || '';
 
-    // Guardrail: Cross-verify Absent/Missing text against touring payload
     const absentMatch = summaryText.match(/Absent\/Missing:\s*([^.\n]+)/i);
     if (absentMatch) {
       const absentSection = absentMatch[1].trim();
@@ -243,12 +252,10 @@ module.exports = async function handler(req, res) {
       summary: summary
     };
 
-    // Write to Redis DB
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
       
       try {
-        // SET key payload command
         await fetch(`${KV_URL}`, {
           method: 'POST',
           headers: {
@@ -258,7 +265,6 @@ module.exports = async function handler(req, res) {
           body: JSON.stringify(['SET', cacheKey, JSON.stringify(resultPayload), 'EX', ttlSeconds])
         });
 
-        // SADD active_bands index command
         if (data.is_currently_touring) {
           await fetch(`${KV_URL}`, {
             method: 'POST',
@@ -272,8 +278,6 @@ module.exports = async function handler(req, res) {
       } catch (redisErr) {
         console.error("Upstash Redis write failed:", redisErr.message);
       }
-    } else {
-      console.warn("Redis write skipped: KV_URL or KV_TOKEN environment variable missing.");
     }
 
     return res.status(200).json({ ...resultPayload, cached: false });
