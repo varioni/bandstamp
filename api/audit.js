@@ -1,5 +1,3 @@
-const { isValidBandName, checkRateLimit } = require('./utils');
-
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,16 +12,8 @@ module.exports = async function handler(req, res) {
 
   const { bandName } = req.body || {};
 
-  if (!bandName || !isValidBandName(bandName)) {
+  if (!bandName || typeof bandName !== 'string' || bandName.trim().length < 2) {
     return res.status(400).json({ error: 'Please enter a valid band or artist name.' });
-  }
-
-  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-  const rateCheck = await checkRateLimit(clientIp, 'audit', 15, 3600);
-  if (!rateCheck.allowed) {
-    return res.status(429).json({ 
-      error: 'Hourly search limit reached. Please take a break and try again later!' 
-    });
   }
 
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -35,7 +25,7 @@ module.exports = async function handler(req, res) {
 
   const cacheKey = `band:${bandName.toLowerCase().trim().replace(/[^a-z0-9]/g, '')}`;
 
-  // Read Cache FIRST
+  // 1. Read Cache FIRST (Zero AI cost on cached hits)
   if (KV_URL && KV_TOKEN) {
     try {
       const kvController = new AbortController();
@@ -250,42 +240,9 @@ module.exports = async function handler(req, res) {
       summary: summary
     };
 
-    // PIPELINE WRITE: Combine SET and SADD into 1 single HTTP pipeline call
+    // Save to Upstash Redis using standard REST calls
     if (KV_URL && KV_TOKEN) {
       const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
-      const pipelineCommands = [
-        ['SET', cacheKey, JSON.stringify(resultPayload), 'EX', ttlSeconds]
-      ];
-
-      if (data.is_currently_touring) {
-        pipelineCommands.push(['SADD', 'active_bands', cacheKey]);
-      }
-      
-      try {
-        await fetch(`${KV_URL}/pipeline`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${KV_TOKEN}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(pipelineCommands)
-        });
-      } catch (redisErr) {
-        console.error("Upstash Redis write failed:", redisErr.message);
-      }
-    }
-
-    return res.status(200).json({ ...resultPayload, cached: false });
-
-  } catch (err) {
-    if (aiTimer) clearTimeout(aiTimer);
-    if (err.name === 'AbortError') {
-      return res.status(504).json({ error: "Audit request timed out searching web." });
-    }
-    return res.status(500).json({ error: `Server Exception: ${err.message}` });
-  }
-};
-= data.is_currently_touring ? 1209600 : 31536000;
       
       try {
         await fetch(`${KV_URL}`, {
