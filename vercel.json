@@ -1,13 +1,12 @@
 {
-  "functions": {
-    "api/*.js": {
-      "maxDuration": 60
-    }
-  },
   "rewrites": [
     {
-      "source": "/api/audit",
-      "destination": "/api/audit.js"
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    },
+    {
+      "source": "/:band([a-zA-Z0-9\\-]+)",
+      "destination": "/index.html?band=:band"
     }
   ]
 }
