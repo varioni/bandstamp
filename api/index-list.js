@@ -17,61 +17,72 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // 1. Fetch active band keys set (1 command)
-    const membersRes = await fetch(`${KV_URL}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${KV_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(['SMEMBERS', 'active_bands'])
-    });
-    
-    let keys = [];
-    if (membersRes.ok) {
-      const membersData = await membersRes.json();
-      keys = membersData.result || [];
-    }
-
-    // Fallback search if active_bands set is empty
-    if (keys.length === 0) {
-      const keysRes = await fetch(`${KV_URL}`, {
+    // 1. Fetch both the active_bands set AND all band:* keys to ensure older audits are never orphaned
+    const [membersRes, keysRes] = await Promise.all([
+      fetch(`${KV_URL}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${KV_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(['SMEMBERS', 'active_bands'])
+      }),
+      fetch(`${KV_URL}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${KV_TOKEN}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(['KEYS', 'band:*'])
-      });
-      if (keysRes.ok) {
-        const keysData = await keysRes.json();
-        keys = keysData.result || [];
-      }
+      })
+    ]);
+
+    let activeSetKeys = [];
+    if (membersRes.ok) {
+      const membersData = await membersRes.json();
+      activeSetKeys = membersData.result || [];
     }
 
-    if (keys.length === 0) return res.status(200).json({ bands: [] });
+    let allBandKeys = [];
+    if (keysRes.ok) {
+      const keysData = await keysRes.json();
+      allBandKeys = keysData.result || [];
+    }
 
-    // 2. BATCH MGET: Fetch ALL band objects in exactly 1 command
+    // Merge and deduplicate keys
+    const mergedKeys = Array.from(new Set([...activeSetKeys, ...allBandKeys]));
+
+    if (mergedKeys.length === 0) return res.status(200).json({ bands: [] });
+
+    // 2. BATCH MGET: Fetch ALL band objects in 1 single command
     const mgetRes = await fetch(`${KV_URL}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${KV_TOKEN}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(['MGET', ...keys])
+      body: JSON.stringify(['MGET', ...mergedKeys])
     });
 
     const bands = [];
+    const missingFromSet = [];
+
     if (mgetRes.ok) {
       const mgetData = await mgetRes.json();
       const rawResults = mgetData.result || [];
 
-      for (const item of rawResults) {
+      for (let i = 0; i < rawResults.length; i++) {
+        const item = rawResults[i];
+        const key = mergedKeys[i];
         if (!item) continue;
+
         try {
           const parsed = typeof item === 'string' ? JSON.parse(item) : item;
           if (parsed.currently_touring && parsed.calculated_score >= 0) {
             bands.push(parsed);
+            if (!activeSetKeys.includes(key)) {
+              missingFromSet.push(key);
+            }
           }
         } catch (e) {
           // Skip invalid JSON
@@ -79,7 +90,19 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // 3. Sort descending by calculated score
+    // 3. Auto-heal: Backfill any older active bands into the active_bands set
+    if (missingFromSet.length > 0) {
+      fetch(`${KV_URL}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${KV_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(['SADD', 'active_bands', ...missingFromSet])
+      }).catch(() => {});
+    }
+
+    // 4. Sort descending by calculated score
     bands.sort((a, b) => b.calculated_score - a.calculated_score);
 
     return res.status(200).json({ bands });
