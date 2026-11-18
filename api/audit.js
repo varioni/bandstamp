@@ -240,9 +240,9 @@ module.exports = async function handler(req, res) {
       summary: summary
     };
 
-    // Save to Upstash Redis using standard REST calls
+    // Save to Upstash Redis with 90-day retention (7,776,000 seconds) for active bands
     if (KV_URL && KV_TOKEN) {
-      const ttlSeconds = data.is_currently_touring ? 1209600 : 31536000;
+      const ttlSeconds = data.is_currently_touring ? 7776000 : 31536000;
       
       try {
         await fetch(`${KV_URL}`, {
