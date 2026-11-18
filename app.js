@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return arr;
   }
 
-  // Load rotating audit ticker banner
+  // Load rotating audit ticker banner with consistent cross-device scroll speed
   async function loadTicker() {
     const track = document.getElementById('ticker-track');
     if (!track) return;
@@ -65,8 +65,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
 
         track.innerHTML = itemsHtml + itemsHtml;
+
+        // Calibrate animation duration dynamically so pixels-per-second speed matches on desktop & mobile
+        const isMobile = window.innerWidth <= 768;
+        const secondsPerBand = isMobile ? 2.2 : 2.8;
+        const calculatedDuration = Math.max(20, Math.round(randomizedBands.length * secondsPerBand));
+        track.style.animationDuration = `${calculatedDuration}s`;
       } else {
         track.innerHTML = `<a href="index-list.html" class="ticker-item">★ BANDSTAMP LIVE INDEX: Audit a band to rank them on the leaderboard!</a>`;
+        track.style.animationDuration = '25s';
       }
     } catch (e) {
       console.warn("Ticker fetch error:", e.message);
